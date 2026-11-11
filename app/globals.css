@@ -280,3 +280,15 @@ html,body{background:#f4f1ed;color:#292431}
 .backup-warning{padding:12px 14px;background:#fff8eb;border:1px solid #f5e9d2;border-radius:9px;color:#9a7b4e;font-size:11px;line-height:1.7;margin:14px 0 18px}
 @media(max-width:850px){.schedule-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.insight-columns{grid-template-columns:1fr}}
 @media(max-width:600px){.insights-hub{padding:15px;margin:22px 0 28px}.insights-title{align-items:flex-start;flex-direction:column}.insights-title h2{font-size:20px}.insight-kpis{grid-template-columns:1fr}.insight-kpis>div{padding:12px}.insight-kpis strong{font-size:22px}.schedule-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-day{min-height:86px}.calendar-grid{gap:3px}.calendar-grid>button{height:43px;border-radius:7px}.calendar-blank{height:43px}.calendar-grid>b{font-size:9px;padding:5px}.backup-actions{display:grid}.backup-actions button{width:100%}.dna-hero>div{flex-wrap:wrap}}
+
+/* Flexible watch-time planner */
+.daily-time-settings{padding:13px 14px;background:#faf9fb;border:1px solid #efecf2;border-radius:11px;margin:14px 0}
+.daily-time-heading{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px}
+.daily-time-heading strong{font-size:11px;color:#5f526f}
+.daily-time-heading small{font-size:9px;color:#a19aa6}
+.setting-line.daily-setting{grid-template-columns:65px 1fr;align-items:center;gap:5px 10px;margin:9px 0;padding-bottom:7px;border-bottom:1px solid #f0edf2}
+.setting-line.daily-setting>span{font-size:10px;color:#77717f}
+.setting-line.daily-setting strong{text-align:right;font-size:10px}
+.setting-line.daily-setting input{grid-column:1/-1}
+.schedule-day span i{font-style:normal;color:#a39aa9;white-space:nowrap}
+@media(max-width:600px){.daily-time-heading{align-items:flex-start;flex-direction:column}.setting-line.daily-setting{grid-template-columns:58px 1fr}}
