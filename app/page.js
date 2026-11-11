@@ -26,7 +26,7 @@ const NAV = [
 ];
 const EMPTY = {
   title: "", original_title: "", poster_url: "", genre: "", country: "",
-  season_number: 1, watched_episodes: 0, released_episodes: "", rating: 3, plan_episodes: 3, plan_order: 0, last_planned_at: null,
+  season_number: 1, watched_episodes: 0, released_episodes: "", episodes_per_release: 1, rating: 3, plan_episodes: 3, plan_order: 0, last_planned_at: null,
   total_episodes: "", status: "watching", release_day: "",
   next_episode_date: "", notes: "",
 };
@@ -42,7 +42,7 @@ const planCount = show => {
   const backlogBonus = backlog(show) >= 10 ? 1 : 0;
   const airingBonus = isAiring(show) ? 1 : 0;
   const preferredLimit = Math.min(3, Math.max(1, Number(show.plan_episodes) || 3));
-  return Math.min(preferredLimit, planAvailable(show), base + backlogBonus + airingBonus);
+  const releaseBatch = isAiring(show) ? Math.max(1, Number(show.episodes_per_release) || 1) : 1;\n  return Math.min(preferredLimit, planAvailable(show), Math.max(base + backlogBonus + airingBonus, releaseBatch));
 };
 const planPriority = show => {
   const stars = Math.min(5, Math.max(1, Number(show.rating) || 3));
@@ -107,7 +107,7 @@ export default function Page() {
   ), [shows]);
 
   function openAdd() { setForm({ ...EMPTY }); setError(""); setModal(true); }
-  function openEdit(show) { setForm({ ...EMPTY, ...show, plan_episodes: show.plan_episodes || 3, rating: show.rating || 3, released_episodes: show.released_episodes ?? "", total_episodes: show.total_episodes ?? "", next_episode_date: show.next_episode_date || "" }); setError(""); setModal(true); }
+  function openEdit(show) { setForm({ ...EMPTY, ...show, plan_episodes: show.plan_episodes || 3, rating: show.rating || 3, episodes_per_release: show.episodes_per_release || 1, released_episodes: show.released_episodes ?? "", total_episodes: show.total_episodes ?? "", next_episode_date: show.next_episode_date || "" }); setError(""); setModal(true); }
   function closeModal() { if (!saving) setModal(false); }
 
   async function saveShow(event) {
@@ -124,7 +124,7 @@ export default function Page() {
       poster_url: form.poster_url?.trim() || null, genre: form.genre?.trim() || null, country: form.country?.trim() || null,
       season_number: Math.max(1, Number(form.season_number) || 1), watched_episodes: watched,
       released_episodes: released, total_episodes: total, status: form.status,
-      plan_episodes: Math.min(30, Math.max(1, Number(form.plan_episodes) || 3)), rating: Math.min(5, Math.max(1, Number(form.rating) || 3)), plan_order: Number(form.plan_order) || 0,
+      plan_episodes: Math.min(30, Math.max(1, Number(form.plan_episodes) || 3)), episodes_per_release: Math.min(10, Math.max(1, Number(form.episodes_per_release) || 1)), rating: Math.min(5, Math.max(1, Number(form.rating) || 3)), plan_order: Number(form.plan_order) || 0,
       release_day: form.release_day || null, next_episode_date: form.next_episode_date || null,
       notes: form.notes?.trim() || null, updated_at: new Date().toISOString(),
     };
@@ -261,7 +261,7 @@ export default function Page() {
         <label>ดูแล้ว<input type="number" min="0" value={form.watched_episodes} onChange={e => setForm({ ...form, watched_episodes: e.target.value })} /></label>
         <label className="wide rating-field">ความอยากดู <span className="field-hint">ให้คะแนนเพื่อช่วยจัดลำดับและจำนวนตอน</span><div className="rating-picker" role="group" aria-label="คะแนนความอยากดู">{[1,2,3,4,5].map(star => <button type="button" key={star} className={star <= (Number(form.rating) || 3) ? "rating-star active" : "rating-star"} onClick={() => setForm({ ...form, rating: star })} aria-label={star + " ดาว"}>★</button>)}<b>{form.rating || 3}/5</b></div></label>
          <label>จำนวนตอนต่อรอบ<input type="number" min="1" max="30" value={form.plan_episodes || 3} onChange={e => setForm({ ...form, plan_episodes: e.target.value })} /><small className="field-hint">ใช้เป็นค่าตั้งต้น ระบบจะปรับตามดาวและตอนค้าง (ไม่เกิน 3 ตอนต่อรอบ)</small></label>
-        <label>ออกอากาศแล้ว<input type="number" min="0" value={form.released_episodes} onChange={e => setForm({ ...form, released_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
+        <label>ปล่อยครั้งละกี่ตอน<input type="number" min="1" max="10" value={form.episodes_per_release || 1} onChange={e => setForm({ ...form, episodes_per_release: e.target.value })} /><small className="field-hint">เช่น 2 ตอนต่อวันออกอากาศ</small></label>\n        <label>ออกอากาศแล้ว<input type="number" min="0" value={form.released_episodes} onChange={e => setForm({ ...form, released_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
         <label>จำนวนตอนทั้งหมด<input type="number" min="0" value={form.total_episodes} onChange={e => setForm({ ...form, total_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
         <fieldset className="wide air-days-field"><legend>วันออกอากาศ <span className="field-hint">เลือกได้มากกว่า 1 วัน</span></legend><div className="air-days-picker">{AIR_DAYS.map(day => { const selected = parseReleaseDays(form.release_day).includes(day); return <label key={day} className={selected ? "air-day selected" : "air-day"}><input type="checkbox" checked={selected} onChange={e => { const days = parseReleaseDays(form.release_day); const next = e.target.checked ? [...days, day] : days.filter(item => item !== day); setForm({ ...form, release_day: AIR_DAYS.filter(item => next.includes(item)).join(",") }); }} /><span>{day}</span></label>; })}</div><small className="field-hint">ไม่เลือกวันได้ หากยังไม่ทราบตารางออกอากาศ</small></fieldset>
         <label>วันตอนถัดไป<input type="date" value={form.next_episode_date || ""} onChange={e => setForm({ ...form, next_episode_date: e.target.value })} /></label>
