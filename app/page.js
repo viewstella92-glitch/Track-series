@@ -32,56 +32,7 @@ const backlog = show => Math.max(0, (show.released_episodes ?? show.total_episod
 const progress = show => show.total_episodes == null ? null : Math.min(100, Math.round(show.watched_episodes / Math.max(1, show.total_episodes) * 100));
 const formatDate = value => value ? new Date(value + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "ยังไม่กำหนด";
 
-function AuthScreen() {
-  const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-
-  async function submit(event) {
-    event.preventDefault();
-    setBusy(true); setError(""); setMessage("");
-    try {
-      if (mode === "signup") {
-        const { data, error: authError } = await supabase.auth.signUp({ email: email.trim(), password });
-        if (authError) throw authError;
-        setMessage(data.session ? "สร้างบัญชีสำเร็จ กำลังเข้าสู่ระบบ…" : "สมัครสำเร็จ กรุณาตรวจอีเมลเพื่อยืนยันบัญชี แล้วกลับมาเข้าสู่ระบบ");
-      } else {
-        const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-        if (authError) throw authError;
-      }
-    } catch (err) { setError(err.message || "เกิดข้อผิดพลาด กรุณาลองอีกครั้ง"); }
-    finally { setBusy(false); }
-  }
-
-  return <main className="auth-shell">
-    <div className="auth-art"><div className="art-orbit orbit-one" /><div className="art-orbit orbit-two" /><div className="art-copy">
-      <span className="eyebrow">YOUR PERSONAL WATCH UNIVERSE</span>
-      <h1>Every story<br /><em>has its moment.</em></h1>
-      <p>พื้นที่เล็ก ๆ สำหรับทุกเรื่องราวที่คุณกำลังติดตาม</p>
-      <div className="art-stamp">SERIES<br />TRACKER <span>✦</span></div>
-    </div></div>
-    <section className="auth-panel">
-      <div className="brand-mark"><span>✦</span> SERIDAYS</div>
-      <div className="auth-heading"><span className="eyebrow">WELCOME TO YOUR SCREEN TIME</span><h2>{mode === "login" ? "กลับมาติดตามเรื่องโปรดกัน" : "สร้างพื้นที่ซีรีส์ของคุณ"}</h2><p>เข้าสู่ระบบเพื่อซิงก์รายการดูระหว่างทุกอุปกรณ์</p></div>
-      <form className="auth-form" onSubmit={submit}>
-        <label>อีเมล<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" required /></label>
-        <label>รหัสผ่าน<input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="อย่างน้อย 6 ตัวอักษร" autoComplete={mode === "login" ? "current-password" : "new-password"} minLength={6} required /></label>
-        {error && <div className="notice error">{error}</div>}
-        {message && <div className="notice success">{message}</div>}
-        <button className="button primary full" disabled={busy}>{busy ? "กำลังดำเนินการ…" : mode === "login" ? "เข้าสู่ระบบ  →" : "สร้างบัญชี  →"}</button>
-      </form>
-      <p className="auth-switch">{mode === "login" ? "ยังไม่มีบัญชี?" : "มีบัญชีอยู่แล้ว?"} <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setMessage(""); }}>{mode === "login" ? "สมัครสมาชิก" : "เข้าสู่ระบบ"}</button></p>
-      <div className="secure-note">⌁ ข้อมูลส่วนตัวของคุณถูกแยกเก็บตามบัญชี</div>
-    </section>
-  </main>;
-}
-
 export default function Page() {
-  const [session, setSession] = useState(null);
-  const [authReady, setAuthReady] = useState(false);
   const [shows, setShows] = useState([]);
   const [dataReady, setDataReady] = useState(false);
   const [active, setActive] = useState("all");
@@ -92,31 +43,23 @@ export default function Page() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    if (!supabase) { setAuthReady(true); return; }
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthReady(true); });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => { setSession(next); setAuthReady(true); });
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
   const loadShows = useCallback(async () => {
-    if (!session?.user?.id) return;
     setDataReady(false); setError("");
     const { data, error: loadError } = await supabase.from("series_tracker_shows").select("*").order("updated_at", { ascending: false });
     if (loadError) setError("โหลดข้อมูลไม่สำเร็จ: " + loadError.message);
     else setShows(data || []);
     setDataReady(true);
-  }, [session?.user?.id]);
+  }, []);
 
-  useEffect(() => { if (session) loadShows(); else { setShows([]); setDataReady(true); } }, [session, loadShows]);
+  useEffect(() => { if (supabase) loadShows(); }, [loadShows]);
 
   useEffect(() => {
-    if (!session?.user?.id) return;
-    const channel = supabase.channel("series-sync-" + session.user.id)
-      .on("postgres_changes", { event: "*", schema: "public", table: "series_tracker_shows", filter: "user_id=eq." + session.user.id }, () => loadShows())
+    if (!supabase) return;
+    const channel = supabase.channel("series-sync-personal")
+      .on("postgres_changes", { event: "*", schema: "public", table: "series_tracker_shows" }, () => loadShows())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [session?.user?.id, loadShows]);
+  }, [loadShows]);
 
   const counts = useMemo(() => {
     const result = { all: shows.filter(s => s.status !== "dropped").length, watching: 0, planned: 0, completed: 0, paused: 0 };
@@ -147,7 +90,7 @@ export default function Page() {
     if (total !== null && watched > total) { setError("จำนวนตอนที่ดูแล้วต้องไม่มากกว่าจำนวนตอนทั้งหมด"); return; }
     if (released !== null && released < watched) { setError("จำนวนตอนที่ออกอากาศแล้วต้องไม่น้อยกว่าตอนที่ดูแล้ว"); return; }
     const payload = {
-      user_id: session.user.id, title: form.title.trim(), original_title: form.original_title?.trim() || null,
+      title: form.title.trim(), original_title: form.original_title?.trim() || null,
       poster_url: form.poster_url?.trim() || null, genre: form.genre?.trim() || null, country: form.country?.trim() || null,
       season_number: Math.max(1, Number(form.season_number) || 1), watched_episodes: watched,
       released_episodes: released, total_episodes: total, status: form.status,
@@ -189,15 +132,12 @@ export default function Page() {
   }
 
   if (!supabase) return <main className="config-screen"><div className="config-card"><div className="brand-mark"><span>✦</span> SERIDAYS</div><h1>ยังไม่ได้เชื่อมต่อฐานข้อมูล</h1><p>ตั้งค่า NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ใน Vercel ก่อนเริ่มใช้งาน</p></div></main>;
-  if (!authReady) return <main className="loading-screen"><span className="loader" />กำลังเตรียมพื้นที่ซีรีส์ของคุณ…</main>;
-  if (!session) return <AuthScreen />;
-
   return <main className="app-shell">
     <aside className="sidebar">
       <div className="brand-mark"><span>✦</span> SERIDAYS</div>
       <div className="side-label">YOUR LIBRARY</div>
       <nav className="side-nav">{NAV.map(item => <button key={item.id} className={active === item.id ? "nav-item active" : "nav-item"} onClick={() => setActive(item.id)}><span className="nav-icon">{item.icon}</span>{item.label}<span className="nav-count">{counts[item.id] || 0}</span></button>)}</nav>
-      <div className="sidebar-bottom"><div className="mini-profile"><div className="avatar">{(session.user.email || "S").slice(0,1).toUpperCase()}</div><div className="profile-copy"><strong>My space</strong><span>{session.user.email}</span></div></div><button className="signout-button" onClick={() => supabase.auth.signOut()}>↪ ออกจากระบบ</button></div>
+      <div className="sidebar-bottom"><div className="mini-profile"><div className="avatar">✦</div><div className="profile-copy"><strong>My private library</strong><span>Personal series tracker</span></div></div></div>
     </aside>
     <section className="main-area">
       <header className="topbar"><div className="breadcrumb">MY LIBRARY <span>/</span> {active === "all" ? "OVERVIEW" : STATUS[active]?.label?.toUpperCase()}</div><div className="topbar-right"><span className="sync-state"><i /> SYNCED</span><button className="button primary add-top" onClick={openAdd}>＋ เพิ่มซีรีส์</button></div></header>
