@@ -82,7 +82,8 @@ const planPriority = show => {
   const statusScore = show.status === "watching" ? 6 : 2;
   const releaseUrgency = days === null ? 0 : days < 0 ? 5 : days === 0 ? 14 : days <= 2 ? 10 : days <= 5 ? 5 : 0;
   const batchScore = isAiring(show) ? Math.min(4, (Number(show.episodes_per_release) || 1) * 1.2) : 0;
-  return ratingScore + backlogScore + statusScore + releaseUrgency + batchScore;
+  const manualOrderScore = Number(show.plan_order) > 0 ? Math.max(0, 12 - Number(show.plan_order)) : 0;
+  return ratingScore + backlogScore + statusScore + releaseUrgency + batchScore + manualOrderScore;
 };
 const planReason = show => {
   const days = daysUntilRelease(show);
