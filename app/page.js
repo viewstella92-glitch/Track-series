@@ -108,8 +108,7 @@ export default function Page() {
   const [notice, setNotice] = useState("");
   const [todayActivity, setTodayActivity] = useState([]);
   const [error, setError] = useState("");
-  const [dailyMinutesByDay, setDailyMinutesByDay] = useState({});
-  const [savingDailyMinutes, setSavingDailyMinutes] = useState(false);
+  const [missionBaseline, setMissionBaseline] = useState(null);
 
   const loadShows = useCallback(async () => {
     setDataReady(false); setError("");
@@ -131,9 +130,6 @@ export default function Page() {
     const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
     const { data: activity } = await supabase.from("series_tracker_activity").select("id, show_id, show_title, episode_delta, created_at").gte("created_at", dayStart.toISOString()).order("created_at", { ascending: false });
     setTodayActivity(activity || []);
-    const { data: preferences, error: preferencesError } = await supabase.from("series_tracker_preferences").select("daily_minutes,weekday_minutes,weekend_minutes").eq("user_id", "00000000-0000-0000-0000-000000000001").maybeSingle();
-    if (preferencesError) setError("โหลดเวลาที่ตั้งไว้ไม่สำเร็จ: " + preferencesError.message);
-    else if (preferences) setDailyMinutesByDay(preferences.daily_minutes || {});
     setDataReady(true);
   }, []);
 
@@ -182,30 +178,31 @@ export default function Page() {
   const todayName = AIR_DAYS[(today.getDay() + 6) % 7];
   const queueBacklog = queueShows.reduce((sum, show) => sum + backlog(show), 0);
   const queueMinutes = queueShows.reduce((sum, show) => sum + backlog(show) * (Number(show.episode_duration_minutes) || 45), 0);
-  const todayBudgetMinutes = Number(dailyMinutesByDay[String(today.getDay())] ?? (today.getDay() === 0 || today.getDay() === 6 ? 180 : 90));
-  const todayLoggedByShow = todayActivity.reduce((map, item) => { if (item.show_id) map[item.show_id] = (map[item.show_id] || 0) + Math.max(0, Number(item.episode_delta) || 0); return map; }, {});
-  const todayQueueLoggedMinutes = shows.reduce((sum, show) => sum + (todayLoggedByShow[show.id] || 0) * (Number(show.episode_duration_minutes) || 45), 0);
-  const dailyTasks = (() => {
-    const candidates = [...queueShows].filter(show => (!show.last_planned_at || localDateKey(new Date(show.last_planned_at)) !== todayKey) && backlog(show) > 0)
-      .sort((a,b) => {
-        const aProgress = todayLoggedByShow[a.id] || 0;
-        const bProgress = todayLoggedByShow[b.id] || 0;
-        if (aProgress > 0 && bProgress === 0) return -1;
-        if (bProgress > 0 && aProgress === 0) return 1;
-        return planPriority(b) - planPriority(a);
-      });
-    for (const show of candidates) {
-      const logged = todayLoggedByShow[show.id] || 0;
-      const duration = Number(show.episode_duration_minutes) || 45;
-      const otherLoggedMinutes = Math.max(0, todayQueueLoggedMinutes - logged * duration);
-      const capacityForThisShow = Math.floor(Math.max(0, todayBudgetMinutes - otherLoggedMinutes) / duration);
-      const availableEpisodesToday = backlog(show) + logged;
-      const target = Math.min(planCount(show), availableEpisodesToday, capacityForThisShow);
-      if (target <= 0) continue;
-      return [{ show, logged, target, duration, complete: logged >= target, reason: planReason(show) }];
-    }
-    return [];
-  })();
+  const flashcardCandidate = [...queueShows]
+    .filter(show => backlog(show) > 0)
+    .sort((a,b) => {
+      const aDone = a.last_planned_at ? new Date(a.last_planned_at).getTime() : 0;
+      const bDone = b.last_planned_at ? new Date(b.last_planned_at).getTime() : 0;
+      if ((aDone === 0) !== (bDone === 0)) return aDone - bDone;
+      if (aDone && bDone && aDone !== bDone) return aDone - bDone;
+      return planPriority(b) - planPriority(a);
+    })[0] || null;
+  useEffect(() => {
+    if (!dataReady || !flashcardCandidate) { setMissionBaseline(null); return; }
+    setMissionBaseline(current => current?.showId === flashcardCandidate.id
+      ? current
+      : { showId: flashcardCandidate.id, startWatched: flashcardCandidate.watched_episodes, target: Math.min(planCount(flashcardCandidate), backlog(flashcardCandidate)) });
+  }, [dataReady, flashcardCandidate?.id, flashcardCandidate?.watched_episodes, flashcardCandidate?.released_episodes, flashcardCandidate?.total_episodes]);
+  const flashcardTask = flashcardCandidate && missionBaseline?.showId === flashcardCandidate.id
+    ? {
+        show: flashcardCandidate,
+        target: missionBaseline.target,
+        logged: Math.max(0, flashcardCandidate.watched_episodes - missionBaseline.startWatched),
+        complete: flashcardCandidate.watched_episodes - missionBaseline.startWatched >= missionBaseline.target,
+        duration: Number(flashcardCandidate.episode_duration_minutes) || 45,
+        reason: planReason(flashcardCandidate),
+      }
+    : null;
   const smartArrangeQueue = async () => {
     const ranked = [...queueShows].sort((a,b) => {
       const score = show => (Number(show.rating) || 3) * 100 + Math.min(30, backlog(show) * 2) + (show.status === "watching" ? 5 : 0);
@@ -218,21 +215,18 @@ export default function Page() {
     }
     setNotice("จัดคิวตามคะแนนความอยากดูและจำนวนตอนค้างแล้ว"); setTimeout(() => setNotice(""), 2500);
   };
-  const saveDailyBudget = async value => {
-    const next = { ...dailyMinutesByDay, [String(today.getDay())]: Number(value) };
-    setSavingDailyMinutes(true);
-    const { error: saveError } = await supabase.from("series_tracker_preferences").upsert({ user_id: "00000000-0000-0000-0000-000000000001", daily_minutes: next, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
-    if (saveError) setError("บันทึกเวลาเป้าหมายไม่สำเร็จ: " + saveError.message);
-    else { setDailyMinutesByDay(next); setNotice("อัปเดตเวลาที่ใช้ดูซีรีส์วันนี้แล้ว"); setTimeout(() => setNotice(""), 2200); }
-    setSavingDailyMinutes(false);
-  };
-  const completeDailyTask = async show => {
-    const task = dailyTasks.find(item => item.show.id === show.id);
-    if (!task || !task.complete) return;
+  const completeFlashcardMission = async show => {
+    const task = flashcardTask;
+    if (!task || task.show.id !== show.id || !task.complete) return;
     const stamp = new Date().toISOString();
     const { data, error: updateError } = await supabase.from("series_tracker_shows").update({ last_planned_at: stamp, updated_at: stamp }).eq("id", show.id).select().single();
     if (updateError) setError("ทำเครื่องหมายภารกิจไม่สำเร็จ: " + updateError.message);
-    else { setShows(current => current.map(item => item.id === show.id ? data : item)); setNotice("สำเร็จแล้ว! จัดภารกิจถัดไปให้ใหม่"); setTimeout(() => setNotice(""), 2200); }
+    else {
+      setShows(current => current.map(item => item.id === show.id ? data : item));
+      setMissionBaseline(null);
+      setNotice("สำเร็จแล้ว! เปิดแฟลชการ์ดภารกิจถัดไปให้แล้ว");
+      setTimeout(() => setNotice(""), 2200);
+    }
   };
 
   const moveQueueItem = async (show, direction) => {
@@ -348,11 +342,19 @@ export default function Page() {
         </section>
         </>}
         {active === "queue" && <section className="flashcard-queue-section">
-          <div className="flashcard-queue-heading"><div><span className="eyebrow">YOUR SMART WATCH PLAN</span><h2>ภารกิจดูซีรีส์วันนี้ <span>{dailyTasks.length} ภารกิจ</span></h2><p>ระบบจัดเป้าหมายจากคะแนนความอยากดู ตอนค้าง วันออกอากาศ และเวลาที่เธอมี</p></div><div className="daily-budget-control"><label htmlFor="daily-budget">เวลาที่มีวันนี้</label><select id="daily-budget" value={todayBudgetMinutes} onChange={e => saveDailyBudget(e.target.value)} disabled={savingDailyMinutes}><option value="30">30 นาที</option><option value="45">45 นาที</option><option value="60">1 ชั่วโมง</option><option value="90">1 ชม. 30 นาที</option><option value="120">2 ชั่วโมง</option><option value="180">3 ชั่วโมง</option><option value="240">4 ชั่วโมง</option><option value="360">6 ชั่วโมง</option><option value="480">8 ชั่วโมง</option><option value="720">12 ชั่วโมง</option></select></div></div>
-          <div className="daily-mission-panel"><div className="daily-mission-summary"><div><small>เวลาเป้าหมายวันนี้</small><strong>{Math.floor(todayBudgetMinutes / 60)} ชม. {todayBudgetMinutes % 60} นาที</strong></div><div><small>ดูไปแล้ววันนี้</small><strong>{Math.floor(todayQueueLoggedMinutes / 60)} ชม. {todayQueueLoggedMinutes % 60} นาที</strong></div><div><small>ตอนค้างในคิว</small><strong>{queueBacklog} ตอน</strong></div></div>
-          {!dataReady ? <p className="daily-mission-empty">กำลังคำนวณภารกิจของวันนี้…</p> : dailyTasks.length ? <div className="daily-task-list">{dailyTasks.map((task,index) => <article className={task.complete ? "daily-task-card is-complete" : "daily-task-card"} key={task.show.id}><div className="daily-task-index">{task.complete ? "✓" : String(index + 1).padStart(2,"0")}</div><div className="daily-task-poster">{task.show.poster_url ? <img src={task.show.poster_url} alt="" /> : <b>{task.show.title.slice(0,1)}</b>}</div><div className="daily-task-content"><div className="daily-task-title"><strong>{task.show.title}</strong><span>{"★".repeat(Number(task.show.rating) || 3)}{"☆".repeat(5 - (Number(task.show.rating) || 3))}</span></div><p>{task.reason}</p><div className="daily-task-goal"><b>เป้าหมาย {task.target} ตอน</b><span>ทำแล้ว {Math.min(task.logged,task.target)} / {task.target} ตอน · {task.target * task.duration} นาที</span></div><div className="daily-task-progress"><i style={{width:Math.min(100,task.logged / Math.max(1,task.target) * 100) + "%"}} /></div></div><div className="daily-task-actions">{!task.complete ? <button className="daily-log-button" onClick={() => changeEpisodes(task.show,1)} disabled={task.logged >= task.target || backlog(task.show) <= 0}>＋ ดูจบ 1 ตอน</button> : <button className="daily-complete-button" onClick={() => completeDailyTask(task.show)}>✓ สำเร็จ · ภารกิจถัดไป</button>}</div></article>)}</div> : <div className="daily-mission-empty"><strong>วันนี้ไม่มีภารกิจค้างแล้ว 🎉</strong><span>หรือเวลาที่ตั้งไว้ไม่พอสำหรับตอนถัดไป ลองปรับเวลาของวันนี้ได้</span></div>}
+          <div className="flashcard-queue-heading"><div><span className="eyebrow">YOUR NEXT WATCH</span><h2>Flashcard Mission <span>{flashcardCandidate ? "ภารกิจที่กำลังทำ" : "ไม่มีภารกิจ"}</span></h2><p>ระบบเลือกเรื่องถัดไปจากคะแนนความอยากดู จำนวนตอนค้าง ตารางออกอากาศ และลำดับคิวของคุณ</p></div></div>
+          <div className="daily-mission-panel flashcard-mission-panel">
+            <div className="daily-mission-summary"><div><small>ตอนค้างทั้งหมด</small><strong>{queueBacklog} ตอน</strong></div><div><small>เรื่องในคิว</small><strong>{queueShows.length} เรื่อง</strong></div><div><small>เวลาโดยประมาณของภารกิจ</small><strong>{flashcardTask ? Math.floor(flashcardTask.target * flashcardTask.duration / 60) + " ชม. " + (flashcardTask.target * flashcardTask.duration % 60) + " นาที" : "—"}</strong></div></div>
+            {!dataReady ? <p className="daily-mission-empty">กำลังเลือกแฟลชการ์ดภารกิจ…</p> : flashcardTask ? <article className={flashcardTask.complete ? "daily-task-card is-complete flashcard-current" : "daily-task-card flashcard-current"}>
+              <div className="daily-task-index">{flashcardTask.complete ? "✓" : "01"}</div>
+              <div className="daily-task-poster">{flashcardTask.show.poster_url ? <img src={flashcardTask.show.poster_url} alt="" /> : <b>{flashcardTask.show.title.slice(0,1)}</b>}</div>
+              <div className="daily-task-content"><div className="daily-task-title"><strong>{flashcardTask.show.title}</strong><span>{"★".repeat(Number(flashcardTask.show.rating) || 3)}{"☆".repeat(5 - (Number(flashcardTask.show.rating) || 3))}</span></div>
+                <p>{flashcardTask.reason}</p><div className="daily-task-goal"><b>ภารกิจ: ดูอีก {flashcardTask.target} ตอน</b><span>ทำแล้ว {Math.min(flashcardTask.logged,flashcardTask.target)} / {flashcardTask.target} ตอน</span></div>
+                <div className="daily-task-progress"><i style={{width:Math.min(100,flashcardTask.logged / Math.max(1,flashcardTask.target) * 100) + "%"}} /></div>
+              </div><div className="daily-task-actions">{!flashcardTask.complete ? <button className="daily-log-button" onClick={() => changeEpisodes(flashcardTask.show,1)} disabled={backlog(flashcardTask.show) <= 0}>＋ บันทึกดู 1 ตอน</button> : <button className="daily-complete-button" onClick={() => completeFlashcardMission(flashcardTask.show)}>✓ สำเร็จ · ใบถัดไป</button>}</div>
+            </article> : <div className="daily-mission-empty"><strong>ไม่มีซีรีส์ค้างในคิวแล้ว 🎉</strong><span>เพิ่มเรื่องที่อยากดูหรือกำลังดู เพื่อให้ระบบจัดแฟลชการ์ดใบต่อไป</span></div>}
           </div>
-          <div className="flashcard-queue-heading backlog-queue-heading"><div><span className="eyebrow">YOUR BACKLOG</span><h2>คิวซีรีส์ทั้งหมด <span>{queueShows.length} เรื่อง</span></h2><p>ระบบจะเลือกเรื่องจากคิวนี้ไปจัดภารกิจรายวันให้เอง</p></div><button className="button ghost" onClick={smartArrangeQueue} disabled={queueShows.length < 2}>จัดลำดับคิว</button></div>
+          <div className="flashcard-queue-heading backlog-queue-heading"><div><span className="eyebrow">YOUR BACKLOG</span><h2>คิวซีรีส์ทั้งหมด <span>{queueShows.length} เรื่อง</span></h2><p>ระบบจะเลือกเรื่องจากคิวนี้มาสร้างแฟลชการ์ดภารกิจถัดไป</p></div><button className="button ghost" onClick={smartArrangeQueue} disabled={queueShows.length < 2}>จัดลำดับคิว</button></div>
           <div className="flashcard-queue-stats"><div><small>ตอนที่ค้างทั้งหมด</small><strong>{queueBacklog.toLocaleString("th-TH")} <i>ตอน</i></strong></div><div><small>เวลาที่ต้องใช้โดยประมาณ</small><strong>{Math.floor(queueMinutes / 60)} <i>ชม.</i> {queueMinutes % 60} <i>นาที</i></strong></div><div><small>เรื่องที่อยู่ในคิว</small><strong>{queueShows.length} <i>เรื่อง</i></strong></div></div>
           {queueShows.length ? <div className="flashcard-queue-grid">{queueShows.map((show,index) => { const waiting = backlog(show); const duration = Number(show.episode_duration_minutes) || 45; const target = Math.min(waiting, Math.max(1, Number(show.plan_episodes) || 3)); return <article className="flashcard-queue-card" key={show.id}><div className="flashcard-queue-poster">{show.poster_url ? <img src={show.poster_url} alt={show.title} /> : <div className="poster-placeholder"><b>{show.title.slice(0,2).toUpperCase()}</b><small>SERIES</small></div>}<span>#{index + 1}</span></div><div className="flashcard-queue-body"><div className="flashcard-queue-top"><span className={"status-tag " + STATUS[show.status]?.tone}>{STATUS[show.status]?.label}</span><button className="more-button" onClick={() => openEdit(show)} aria-label={"แก้ไข " + show.title}>···</button></div><h3>{show.title}</h3><div className="flashcard-stars">{"★".repeat(Number(show.rating) || 3)}{"☆".repeat(5 - (Number(show.rating) || 3))}</div><div className="flashcard-queue-progress"><span>ดูแล้ว {show.watched_episodes} ตอน</span><b>{waiting} ตอนค้าง</b></div><div className="flashcard-queue-track"><i style={{width:(show.total_episodes ? Math.min(100, show.watched_episodes / Math.max(1,show.total_episodes)*100) : 0) + "%"}} /></div><div className="flashcard-target"><div><small>เป้าหมายรอบถัดไป</small><strong>{target} ตอน · ประมาณ {target * duration} นาที</strong></div><button onClick={() => openEdit(show)}>ปรับแผน</button></div><div className="flashcard-queue-actions"><button onClick={() => moveQueueItem(show,-1)} disabled={index===0} aria-label="เลื่อนขึ้น">↑</button><button onClick={() => moveQueueItem(show,1)} disabled={index===queueShows.length-1} aria-label="เลื่อนลง">↓</button>{show.status !== "watching" && <button className="queue-start" onClick={() => quickStatus(show,"watching")}>เริ่มดู</button>}<button className="queue-watch" onClick={() => changeEpisodes(show,1)} disabled={show.total_episodes !== null && show.watched_episodes >= show.total_episodes}>＋ ดูแล้ว 1 ตอน</button></div></div></article>; })}</div> : <div className="flashcard-queue-empty"><strong>คิวยังว่างอยู่</strong><p>เพิ่มซีรีย์แล้วเลือกสถานะ “อยากดู” หรือ “กำลังดู” เพื่อให้เรื่องนั้นเข้ามาอยู่ในคิวนี้</p><button className="button primary" onClick={openAdd}>＋ เพิ่มซีรีส์เข้าคิว</button></div>}
         </section>}
