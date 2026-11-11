@@ -292,3 +292,11 @@ html,body{background:#f4f1ed;color:#292431}
 .setting-line.daily-setting input{grid-column:1/-1}
 .schedule-day span i{font-style:normal;color:#a39aa9;white-space:nowrap}
 @media(max-width:600px){.daily-time-heading{align-items:flex-start;flex-direction:column}.setting-line.daily-setting{grid-template-columns:58px 1fr}}
+
+
+/* Smart Watch Cards — clear reasons and time estimates */
+.plan-time-estimate{font-size:10px;color:#76677e;background:#f2edf3;border:1px solid #e9e0eb;border-radius:8px;padding:7px 10px;margin-top:8px;width:fit-content}
+.queue-copy{gap:5px}
+.queue-reason{display:block;font-size:9px!important;line-height:1.45;color:#887b8e!important;white-space:normal!important;overflow:visible!important}
+.plan-feature-info .plan-reason{font-size:10px;line-height:1.6}
+@media(max-width:700px){.plan-time-estimate{font-size:8px;padding:6px 8px}.queue-reason{font-size:8px!important}}
