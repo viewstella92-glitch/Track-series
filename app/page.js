@@ -364,9 +364,9 @@ export default function Page() {
         </section>
         </>}
         {active === "queue" && <section className="flashcard-queue-section">
-          <div className="flashcard-queue-heading"><div><span className="eyebrow">YOUR NEXT WATCH</span><h2>Flashcard Mission <span>{flashcardCandidate ? "ภารกิจที่กำลังทำ" : "ไม่มีภารกิจ"}</span></h2><p>ระบบเลือกเรื่องถัดไปจากคะแนนความอยากดู จำนวนตอนค้าง ตารางออกอากาศ และลำดับคิวของคุณ</p></div></div>
+          <div className="flashcard-queue-heading"><div><span className="eyebrow">YOUR NEXT WATCH</span><h2>Flashcard Mission <span>{flashcardCandidate ? "ภารกิจที่กำลังทำ" : "ไม่มีภารกิจ"}</span></h2><p>ระบบประเมินข้อมูลล่าสุด แล้วเลือกเรื่องและจำนวนตอนที่เหมาะสมให้คุณโดยอัตโนมัติ</p></div></div>
           <div className="daily-mission-panel flashcard-mission-panel">
-            <div className="daily-mission-summary"><div><small>ตอนค้างทั้งหมด</small><strong>{queueBacklog} ตอน</strong></div><div><small>เรื่องในคิว</small><strong>{queueShows.length} เรื่อง</strong></div><div><small>เวลาโดยประมาณของภารกิจ</small><strong>{flashcardTask ? Math.floor(flashcardTask.target * flashcardTask.duration / 60) + " ชม. " + (flashcardTask.target * flashcardTask.duration % 60) + " นาที" : "—"}</strong></div></div>
+            <div className="daily-mission-summary"><div><small>ตอนที่รอรับชม</small><strong>{queueBacklog} ตอน</strong></div><div><small>เรื่องในคิว</small><strong>{queueShows.length} เรื่อง</strong></div><div><small>ระยะเวลาภารกิจ</small><strong>{flashcardTask ? Math.floor(flashcardTask.target * flashcardTask.duration / 60) + " ชม. " + (flashcardTask.target * flashcardTask.duration % 60) + " นาที" : "—"}</strong></div></div>
             {!dataReady ? <p className="daily-mission-empty">กำลังเลือกแฟลชการ์ดภารกิจ…</p> : flashcardTask ? <article className={flashcardTask.complete ? "daily-task-card is-complete flashcard-current" : "daily-task-card flashcard-current"}>
               <div className="daily-task-index">{flashcardTask.complete ? "✓" : "01"}</div>
               <div className="daily-task-poster">{flashcardTask.show.poster_url ? <img src={flashcardTask.show.poster_url} alt="" /> : <b>{flashcardTask.show.title.slice(0,1)}</b>}</div>
