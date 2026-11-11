@@ -367,3 +367,53 @@ html,body{background:#f4f1ed;color:#292431}
 .flashcard-queue-empty p{font-size:12px;color:#928894;margin:7px auto 15px;max-width:420px}
 @media(max-width:850px){.flashcard-queue-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.flashcard-queue-heading{align-items:flex-start;flex-direction:column}.flashcard-queue-heading h2{font-size:21px}.flashcard-queue-stats{gap:6px}.flashcard-queue-stats>div{padding:10px 8px}.flashcard-queue-stats small{font-size:8px}.flashcard-queue-stats strong{font-size:16px}.flashcard-queue-card{grid-template-columns:88px minmax(0,1fr);gap:10px;padding:10px}.flashcard-queue-poster{height:132px}.flashcard-queue-body h3{font-size:13px}.flashcard-queue-progress{font-size:9px}.flashcard-target{padding:7px}.flashcard-target strong{font-size:9px}.flashcard-queue-actions{gap:4px}.flashcard-queue-actions button{padding:0 7px;height:27px;font-size:9px}}
+
+
+/* Daily smart watch missions */
+.daily-budget-control{display:flex;align-items:center;gap:9px;background:#fffdfa;border:1px solid #e9e1e9;border-radius:12px;padding:9px 12px}
+.daily-budget-control label{font-size:11px;color:#817483;white-space:nowrap}
+.daily-budget-control select{border:0;background:transparent;color:#624d6c;font:700 12px 'Noto Sans Thai';outline:none;max-width:130px}
+.daily-mission-panel{background:linear-gradient(135deg,#fbf8fc,#fffdfa);border:1px solid #e9e1e9;border-radius:18px;padding:17px;margin:0 0 25px}
+.daily-mission-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.daily-mission-summary>div{background:#fff;border:1px solid #eee8ef;border-radius:12px;padding:12px 14px}
+.daily-mission-summary small{display:block;color:#948a96;font-size:10px}
+.daily-mission-summary strong{display:block;color:#70577b;font:700 17px Manrope,'Noto Sans Thai';margin-top:4px}
+.daily-task-list{display:flex;flex-direction:column;gap:10px}
+.daily-task-card{display:grid;grid-template-columns:30px 54px minmax(0,1fr) auto;align-items:center;gap:12px;background:#fff;border:1px solid #ebe5ed;border-radius:14px;padding:12px}
+.daily-task-card.is-complete{border-color:#b8d9c5;background:#f8fcf9}
+.daily-task-index{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#f0e9f3;color:#745b80;font:700 11px Manrope}
+.daily-task-card.is-complete .daily-task-index{background:#e0f2e6;color:#32824d}
+.daily-task-poster{width:54px;height:70px;border-radius:8px;overflow:hidden;background:#eee7f0;display:grid;place-items:center;color:#755b80;font-weight:700}
+.daily-task-poster img{width:100%;height:100%;object-fit:cover}
+.daily-task-content{min-width:0}
+.daily-task-title{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.daily-task-title strong{font-size:13px;color:#352d3a;overflow-wrap:anywhere}
+.daily-task-title span{font-size:10px;letter-spacing:1px;color:#d3a13e;white-space:nowrap}
+.daily-task-content>p{font-size:10px;color:#918793;margin:3px 0 7px}
+.daily-task-goal{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px}
+.daily-task-goal b{color:#6f557a}
+.daily-task-goal span{color:#918793}
+.daily-task-progress{height:5px;border-radius:9px;background:#eee8ef;overflow:hidden;margin-top:6px}
+.daily-task-progress i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#856691,#c3a4ca)}
+.daily-task-card.is-complete .daily-task-progress i{background:#60a879}
+.daily-task-actions{display:flex;justify-content:flex-end}
+.daily-log-button,.daily-complete-button{border:0;border-radius:9px;padding:10px 12px;font:700 11px 'Noto Sans Thai';white-space:nowrap;cursor:pointer}
+.daily-log-button{background:#f1eaf4;color:#6e547a}
+.daily-log-button:disabled{opacity:.45;cursor:not-allowed}
+.daily-complete-button{background:#e2f3e7;color:#287346}
+.daily-mission-empty{padding:24px 12px;text-align:center;color:#8f8491;font-size:12px}
+.daily-mission-empty strong,.daily-mission-empty span{display:block}
+.daily-mission-empty strong{color:#66506f;font-size:14px;margin-bottom:5px}
+.backlog-queue-heading{margin-top:25px;padding-top:20px;border-top:1px solid #eee8ef}
+@media(max-width:680px){
+ .daily-budget-control{width:100%;justify-content:space-between;margin-top:12px}
+ .daily-mission-summary{gap:6px}
+ .daily-mission-summary>div{padding:10px 8px}
+ .daily-mission-summary strong{font-size:13px}
+ .daily-task-card{grid-template-columns:25px 44px minmax(0,1fr);gap:8px;padding:10px}
+ .daily-task-poster{width:44px;height:60px}
+ .daily-task-actions{grid-column:3;justify-content:flex-start}
+ .daily-log-button,.daily-complete-button{padding:8px 10px}
+ .daily-task-goal{align-items:flex-start;flex-direction:column;gap:2px}
+ .flashcard-queue-heading{align-items:stretch;flex-direction:column}
+}
