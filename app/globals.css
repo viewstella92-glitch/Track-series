@@ -326,3 +326,44 @@ html,body{background:#f4f1ed;color:#292431}
 .compact-stats{margin:18px 0 32px}
 @media(max-width:850px){.today-dashboard{grid-template-columns:1fr}}
 @media(max-width:600px){.today-summary,.today-notices{padding:16px;border-radius:14px}.today-kpis{gap:6px}.today-kpis>div{padding:10px 8px}.today-kpis strong{font-size:23px}.today-kpis span{font-size:9px}.compact-stats{margin:14px 0 26px}}
+
+/* Flashcard Queue — personal watch backlog control */
+.flashcard-queue-section{margin:4px 0 30px}
+.flashcard-queue-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.flashcard-queue-heading h2{font:700 24px 'Noto Sans Thai',sans-serif;color:#302936;margin:5px 0}
+.flashcard-queue-heading h2 span{font:500 12px 'Noto Sans Thai';color:#8c828e;margin-left:7px}
+.flashcard-queue-heading p{font-size:12px;color:#928894;margin:0}
+.flashcard-queue-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.flashcard-queue-stats>div{background:#fffdfa;border:1px solid #eae3e9;border-radius:13px;padding:14px 17px}
+.flashcard-queue-stats small{display:block;color:#918793;font-size:10px}
+.flashcard-queue-stats strong{display:block;color:#74577e;font:700 21px Manrope,'Noto Sans Thai',sans-serif;margin-top:5px}
+.flashcard-queue-stats strong i{font:500 10px 'Noto Sans Thai';color:#928894}
+.flashcard-queue-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.flashcard-queue-card{display:grid;grid-template-columns:112px minmax(0,1fr);gap:14px;padding:13px;background:#fffdfa;border:1px solid #eae3e9;border-radius:15px;box-shadow:0 5px 18px rgba(55,40,58,.025);min-width:0}
+.flashcard-queue-poster{height:158px;border-radius:9px;overflow:hidden;position:relative;background:#eee6f0}
+.flashcard-queue-poster img{width:100%;height:100%;object-fit:cover}
+.flashcard-queue-poster .poster-placeholder{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.flashcard-queue-poster>span{position:absolute;left:7px;top:7px;border-radius:20px;background:rgba(41,36,49,.82);color:white;padding:4px 8px;font:700 10px Manrope}
+.flashcard-queue-body{min-width:0;display:flex;flex-direction:column}
+.flashcard-queue-top{display:flex;align-items:center;justify-content:space-between}
+.flashcard-queue-body h3{font:700 15px 'Noto Sans Thai';color:#302936;margin:5px 0 2px;overflow-wrap:anywhere}
+.flashcard-stars{font-size:11px;letter-spacing:1px;color:#d6a23e}
+.flashcard-queue-progress{display:flex;justify-content:space-between;gap:8px;margin-top:12px;font-size:10px;color:#918793}
+.flashcard-queue-progress b{color:#74577e}
+.flashcard-queue-track{height:5px;background:#eee8ef;border-radius:10px;overflow:hidden;margin:6px 0 10px}
+.flashcard-queue-track i{display:block;height:100%;background:linear-gradient(90deg,#80618d,#c2a2c8);border-radius:10px}
+.flashcard-target{display:flex;justify-content:space-between;align-items:center;gap:8px;background:#f7f2f7;border-radius:9px;padding:8px 10px}
+.flashcard-target small,.flashcard-target strong{display:block}
+.flashcard-target small{font-size:9px;color:#938995}
+.flashcard-target strong{font-size:10px;color:#65506f;margin-top:2px}
+.flashcard-target button{border:0;background:transparent;color:#795b88;font-size:10px;font-weight:700;white-space:nowrap}
+.flashcard-queue-actions{display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:10px}
+.flashcard-queue-actions button{height:29px;min-width:29px;padding:0 9px;border:1px solid #e8e0e8;border-radius:8px;background:#f8f4f8;color:#705678;font-size:11px}
+.flashcard-queue-actions button:disabled{opacity:.35;cursor:not-allowed}
+.flashcard-queue-actions .queue-start{background:#eee6f0;border-color:#e5d9e8;font-weight:700}
+.flashcard-queue-actions .queue-watch{margin-left:auto;background:#795b88;color:#fff;border-color:#795b88;font-weight:700}
+.flashcard-queue-empty{padding:32px 18px;text-align:center;background:#fffdfa;border:1px dashed #dfd4e2;border-radius:15px}
+.flashcard-queue-empty strong{font-size:16px;color:#403445}
+.flashcard-queue-empty p{font-size:12px;color:#928894;margin:7px auto 15px;max-width:420px}
+@media(max-width:850px){.flashcard-queue-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.flashcard-queue-heading{align-items:flex-start;flex-direction:column}.flashcard-queue-heading h2{font-size:21px}.flashcard-queue-stats{gap:6px}.flashcard-queue-stats>div{padding:10px 8px}.flashcard-queue-stats small{font-size:8px}.flashcard-queue-stats strong{font-size:16px}.flashcard-queue-card{grid-template-columns:88px minmax(0,1fr);gap:10px;padding:10px}.flashcard-queue-poster{height:132px}.flashcard-queue-body h3{font-size:13px}.flashcard-queue-progress{font-size:9px}.flashcard-target{padding:7px}.flashcard-target strong{font-size:9px}.flashcard-queue-actions{gap:4px}.flashcard-queue-actions button{padding:0 7px;height:27px;font-size:9px}}
