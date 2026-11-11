@@ -198,3 +198,85 @@ html,body{background:#f4f1ed;color:#292431}
 .series-grid{grid-template-columns:1fr;gap:11px}.series-card{padding:11px;gap:12px;border-radius:14px}.poster-thumb{flex-basis:94px;height:132px}.series-title-row h3{font-size:14px}
 .plan-feature-card{grid-template-columns:112px 1fr;gap:12px;padding:10px;border-radius:15px}.plan-feature-poster,.plan-feature-poster img,.plan-feature-poster .poster-placeholder{min-height:190px}.plan-feature-info h3{font-size:16px}.plan-queue{border-radius:15px}.section-heading h2{font-size:20px}
 }
+
+
+/* SeriDays planning, calendar, analytics and backup hub */
+.insights-hub{margin:30px 0 38px;padding:25px;background:#fff;border:1px solid #ebe7ef;border-radius:18px;box-shadow:0 12px 35px rgba(38,31,57,.045)}
+.insights-title{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:18px}
+.insights-title h2{font:700 24px 'Noto Sans Thai',sans-serif;margin:6px 0}
+.insights-title p{margin:0;color:#918b98;font-size:12px}
+.insights-tabs{display:flex;gap:7px;overflow:auto;border-bottom:1px solid #eeeaf1;padding-bottom:12px;margin-bottom:18px}
+.insights-tabs button{white-space:nowrap;border:1px solid #eae6ee;background:#faf9fb;color:#81798a;border-radius:30px;padding:9px 15px;font-size:12px}
+.insights-tabs button.selected{background:#302b3c;border-color:#302b3c;color:#fff}
+.insights-panel{display:grid;gap:16px}
+.insight-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.insight-kpis>div{background:#f8f6fa;border:1px solid #efebf2;border-radius:12px;padding:16px}
+.insight-kpis small{display:block;color:#8e8796;font-size:11px}
+.insight-kpis strong{display:block;font:700 25px 'Manrope','Noto Sans Thai',sans-serif;color:#4e4262;margin-top:5px}
+.insight-kpis strong i{font:500 11px 'Noto Sans Thai';color:#8e8796}
+.insight-kpis em{display:block;font-style:normal;font-size:10px;color:#9a91a5;margin-top:4px}
+.insight-columns{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.insight-card{border:1px solid #eeeaf1;border-radius:13px;padding:18px;min-width:0;background:#fff}
+.insight-card h3{font:700 16px 'Noto Sans Thai',sans-serif;margin:5px 0 15px;color:#393342}
+.insight-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.insight-card-head h3{margin-bottom:12px}
+.muted-small{font-size:10px;color:#aaa3b0}
+.priority-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid #f1eef3}
+.priority-row> b:first-child{font:700 11px Manrope;color:#a49aac;width:20px}
+.priority-poster{width:37px;height:48px;border-radius:6px;overflow:hidden;background:#eee9f4;display:grid;place-items:center;color:#8976a7;flex:none}
+.priority-poster img{width:100%;height:100%;object-fit:cover}
+.priority-copy{display:grid;gap:3px;min-width:0;flex:1}
+.priority-copy strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.priority-copy span{font-size:10px;color:#98919e}
+.priority-score{font:700 14px Manrope;color:#7864a9}
+.setting-line{display:grid;grid-template-columns:1fr auto;gap:8px;margin:13px 0;color:#77717e;font-size:11px}
+.setting-line strong{color:#65547f;font-size:11px}
+.setting-line input{grid-column:1/-1;width:100%;accent-color:#7864a9}
+.sim-note{font-size:10px;line-height:1.7;color:#a19aa6;margin:8px 0 0}
+.sim-result{background:#f3eff8;border-radius:9px;padding:12px;color:#695783;font-size:12px;margin-top:12px}
+.sim-result b{font-size:15px}
+.schedule-card{padding:19px}
+.schedule-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+.schedule-day{background:#faf9fb;border:1px solid #f0edf2;border-radius:9px;padding:9px;min-height:100px;display:flex;flex-direction:column;gap:5px}
+.schedule-day small{font-size:9px;color:#918a99}
+.schedule-day>strong{font:700 12px Manrope;color:#6c5b88}
+.schedule-day span{font-size:9px;line-height:1.4;color:#77717f;overflow-wrap:anywhere}
+.schedule-day em{font-style:normal;font-size:9px;color:#b3acb8;margin-top:auto}
+.calendar-head,.stats-filter{display:flex;align-items:center;justify-content:center;gap:22px}
+.calendar-head h3{font:700 18px 'Noto Sans Thai';margin:0;min-width:180px;text-align:center}
+.calendar-head button,.stats-filter button{width:32px;height:32px;border:1px solid #eae6ee;border-radius:50%;background:#fff;color:#7864a9;font-size:20px}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;max-width:760px;margin:16px auto}
+.calendar-grid>b{text-align:center;font-size:11px;color:#98919e;padding:8px}
+.calendar-grid>button{height:58px;border:1px solid #eeeaf1;border-radius:9px;background:#fff;color:#5c5663;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:12px}
+.calendar-grid>button.chosen{border-color:#7864a9;background:#f2eef8;color:#655184;font-weight:700}
+.calendar-grid>button i{width:5px;height:5px;border-radius:50%;background:#a28bc7}
+.calendar-grid>button.has-events{background:#fbf9fd}
+.calendar-blank{height:58px}
+.calendar-details{border-top:1px solid #eeeaf1;padding-top:15px}
+.calendar-details h3{font:700 15px 'Noto Sans Thai';margin:5px 0 12px}
+.calendar-event{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f3f0f5}
+.calendar-event span{font-size:10px;color:#8b79a8;background:#f2eef8;padding:5px 8px;border-radius:20px}
+.calendar-event strong{font-size:12px}
+.empty-note{font-size:11px;color:#aaa3b0}
+.stats-filter{gap:15px}
+.stats-filter strong{font-size:13px;min-width:130px;text-align:center}
+.bar-row{display:grid;grid-template-columns:75px 1fr 25px;align-items:center;gap:8px;margin:11px 0;font-size:10px;color:#817a88}
+.bar-row>div{height:7px;background:#f1eef4;border-radius:20px;overflow:hidden}
+.bar-row>div i{display:block;height:100%;background:linear-gradient(90deg,#8975b1,#c3b4d8);border-radius:20px}
+.bar-row>b{text-align:right;font:600 10px Manrope;color:#75648f}
+.stat-line{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #f1eef3;font-size:11px;color:#817a88}
+.stat-line b{color:#5f526f}
+.dna-hero{padding:25px;border-radius:14px;background:linear-gradient(120deg,#302b3c,#554768);color:#fff}
+.dna-hero .eyebrow{color:#c6b6dc}
+.dna-hero h3{font:700 22px 'Noto Sans Thai';margin:8px 0}
+.dna-hero p{font-size:11px;color:#d3cadc}
+.dna-hero>div{display:flex;align-items:baseline;gap:9px;margin-top:18px}
+.dna-hero>div strong{font:700 25px Manrope;color:#e4d7f3;margin-left:12px}
+.dna-hero>div small{font-size:10px;color:#c7bdcf}
+.dna-summary{font-size:12px;line-height:1.8;color:#77717f}
+.backup-card{padding:24px}
+.backup-card>p{font-size:12px;color:#918a98}
+.backup-actions{display:flex;gap:9px;flex-wrap:wrap;margin:18px 0}
+.backup-warning{padding:12px 14px;background:#fff8eb;border:1px solid #f5e9d2;border-radius:9px;color:#9a7b4e;font-size:11px;line-height:1.7;margin:14px 0 18px}
+@media(max-width:850px){.schedule-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.insight-columns{grid-template-columns:1fr}}
+@media(max-width:600px){.insights-hub{padding:15px;margin:22px 0 28px}.insights-title{align-items:flex-start;flex-direction:column}.insights-title h2{font-size:20px}.insight-kpis{grid-template-columns:1fr}.insight-kpis>div{padding:12px}.insight-kpis strong{font-size:22px}.schedule-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-day{min-height:86px}.calendar-grid{gap:3px}.calendar-grid>button{height:43px;border-radius:7px}.calendar-blank{height:43px}.calendar-grid>b{font-size:9px;padding:5px}.backup-actions{display:grid}.backup-actions button{width:100%}.dna-hero>div{flex-wrap:wrap}}
