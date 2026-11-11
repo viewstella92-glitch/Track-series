@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import InsightsHub from "./components/InsightsHub";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -154,7 +155,7 @@ export default function Page() {
     const nextStatus = show.total_episodes !== null && next === show.total_episodes && show.status === "watching" ? "completed" : show.status === "completed" && next < show.total_episodes ? "watching" : show.status;
     const { data, error: updateError } = await supabase.from("series_tracker_shows").update({ watched_episodes: next, status: nextStatus, updated_at: new Date().toISOString() }).eq("id", show.id).select().single();
     if (updateError) setError("อัปเดตตอนไม่สำเร็จ: " + updateError.message);
-    else setShows(current => current.map(item => item.id === show.id ? data : item));
+    else { setShows(current => current.map(item => item.id === show.id ? data : item)); if (delta > 0) await supabase.from("series_tracker_activity").insert({ user_id: "00000000-0000-0000-0000-000000000001", show_id: show.id, show_title: show.title, episode_delta: delta }); }
   }
 
   async function quickStatus(show, status) {
@@ -176,6 +177,7 @@ export default function Page() {
     if (updateError) setError("อัปเดตแผนดูไม่สำเร็จ: " + updateError.message);
     else {
       setShows(current => current.map(item => item.id === show.id ? data : item));
+      await supabase.from("series_tracker_activity").insert({ user_id: "00000000-0000-0000-0000-000000000001", show_id: show.id, show_title: show.title, episode_delta: amount });
       setNotice(finished ? "ดูเรื่องนี้จบแล้ว! เลื่อนไปเรื่องถัดไปให้แล้ว" : "บันทึกแผนสำเร็จ · เรื่องถัดไปพร้อมแล้ว");
       setTimeout(() => setNotice(""), 2800);
     }
@@ -221,6 +223,7 @@ export default function Page() {
           <div className="stat-card"><span className="stat-icon peach">◷</span><span className="stat-label">ตอนที่ดูแล้ว</span><strong>{totals.watched}</strong><small>ตอนที่บันทึกไว้</small></div>
           <div className="stat-card"><span className="stat-icon mint">≋</span><span className="stat-label">ตอนที่ค้างดู</span><strong>{totals.backlog}</strong><small>จากเรื่องที่กำลังดู</small></div>
         </section>
+        <InsightsHub shows={shows} onRefresh={loadShows} />
         <section className="section-heading"><div><span className="eyebrow">YOUR COLLECTION</span><h2>{active === "all" ? "ซีรีส์ในลิสต์" : STATUS[active]?.label || "ซีรีส์ในลิสต์"} <span>{filtered.length}</span></h2></div><div className="search-box"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="ค้นหาชื่อเรื่อง…" /></div></section>
         <div className="filter-row">{NAV.map(item => <button key={item.id} className={active === item.id ? "filter-chip selected" : "filter-chip"} onClick={() => setActive(item.id)}>{item.label}</button>)}</div>
         {error && <div className="notice error inline-notice">{error}<button onClick={() => setError("")}>×</button></div>}
