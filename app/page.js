@@ -309,10 +309,11 @@ export default function Page() {
           <div className="stat-card"><span className="stat-icon peach">◷</span><span className="stat-label">ดูวันนี้</span><strong>{todayEpisodeCount}</strong><small>ตอนที่บันทึกในวันนี้</small></div>
           <div className="stat-card"><span className="stat-icon mint">≋</span><span className="stat-label">ตอนค้างดู</span><strong>{totals.backlog}</strong><small>จากเรื่องที่กำลังดู</small></div>
         </section>}
-        <section className="section-heading"><div><span className="eyebrow">YOUR SERIES CARDS</span><h2>{active === "all" ? "การ์ดซีรีส์ของฉัน" : active === "queue" ? "ซีรีย์ในคิว" : STATUS[active]?.label || "การ์ดซีรีส์ของฉัน"} <span>{filtered.length}</span></h2></div><div className="search-box"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="ค้นหาชื่อเรื่อง…" /></div></section>
-        <div className="filter-row">{NAV.map(item => <button key={item.id} className={active === item.id ? "filter-chip selected" : "filter-chip"} onClick={() => setActive(item.id)}>{item.label}</button>)}</div>
         {error && <div className="notice error inline-notice">{error}<button onClick={() => setError("")}>×</button></div>}
         {notice && <div className="notice success inline-notice">{notice}</div>}
+        {active !== "queue" && <>
+        <section className="section-heading"><div><span className="eyebrow">YOUR SERIES CARDS</span><h2>{active === "all" ? "การ์ดซีรีส์ของฉัน" : active === "queue" ? "ซีรีย์ในคิว" : STATUS[active]?.label || "การ์ดซีรีส์ของฉัน"} <span>{filtered.length}</span></h2></div><div className="search-box"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="ค้นหาชื่อเรื่อง…" /></div></section>
+        <div className="filter-row">{NAV.map(item => <button key={item.id} className={active === item.id ? "filter-chip selected" : "filter-chip"} onClick={() => setActive(item.id)}>{item.label}</button>)}</div>
         {!dataReady ? <div className="empty-state"><span className="loader" /><p>กำลังซิงก์ข้อมูลของคุณ…</p></div> :
           filtered.length === 0 ? <div className="empty-state"><div className="empty-illustration">✧</div><h3>{query ? "ไม่พบเรื่องที่ค้นหา" : "พื้นที่นี้ยังว่างอยู่"}</h3><p>{query ? "ลองค้นหาด้วยชื่อเรื่องอื่น" : "เพิ่มซีรีส์ที่กำลังดูหรืออยากดู แล้วการ์ดของเรื่องนั้นจะอยู่ที่นี่"}</p>{!query && <button className="button primary" onClick={openAdd}>＋ เพิ่มซีรีส์</button>}</div> :
           <div className="series-grid">{filtered.map(show => {
@@ -335,6 +336,7 @@ export default function Page() {
             </article>;
           })}</div>
         }
+        </>}
         <footer className="app-footer"><span>✦ SERIDAYS</span><span>Made for the stories you love.</span><button onClick={loadShows}>↻ รีเฟรชข้อมูล</button></footer>
       </div>
     </section>
