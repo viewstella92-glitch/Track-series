@@ -69,37 +69,6 @@ const planCount = show => {
 };
 const daysUntilRelease = show => {
   if (!show.next_episode_date) return null;
-  const queueShows = useMemo(() => shows.filter(show => ["watching","planned","paused"].includes(show.status)).sort((a,b) => {
-    const ao = Number(a.plan_order) || 0; const bo = Number(b.plan_order) || 0;
-    if (ao > 0 && bo > 0 && ao !== bo) return ao - bo;
-    if (ao > 0 && !bo) return -1; if (bo > 0 && !ao) return 1;
-    const score = show => (Number(show.rating) || 3) * 100 + Math.min(30, backlog(show) * 2) + (show.status === "watching" ? 5 : 0);
-    return score(b) - score(a);
-  }), [shows]);
-  const queueBacklog = queueShows.reduce((sum, show) => sum + backlog(show), 0);
-  const queueMinutes = queueShows.reduce((sum, show) => sum + backlog(show) * (Number(show.episode_duration_minutes) || 45), 0);
-  const smartArrangeQueue = async () => {
-    const ranked = [...queueShows].sort((a,b) => {
-      const score = show => (Number(show.rating) || 3) * 100 + Math.min(30, backlog(show) * 2) + (show.status === "watching" ? 5 : 0);
-      return score(b) - score(a);
-    });
-    for (let i = 0; i < ranked.length; i++) {
-      const { data, error: updateError } = await supabase.from("series_tracker_shows").update({ plan_order: i + 1, updated_at: new Date().toISOString() }).eq("id", ranked[i].id).select().single();
-      if (updateError) { setError("จัดลำดับคิวไม่สำเร็จ: " + updateError.message); return; }
-      setShows(current => current.map(item => item.id === ranked[i].id ? data : item));
-    }
-    setNotice("จัดคิวตามคะแนนความอยากดูและจำนวนตอนค้างแล้ว"); setTimeout(() => setNotice(""), 2500);
-  };
-  const moveQueueItem = async (show, direction) => {
-    const index = queueShows.findIndex(item => item.id === show.id); const target = index + direction;
-    if (target < 0 || target >= queueShows.length) return;
-    const reordered = [...queueShows]; [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
-    for (let i = 0; i < reordered.length; i++) {
-      const { data, error: updateError } = await supabase.from("series_tracker_shows").update({ plan_order: i + 1, updated_at: new Date().toISOString() }).eq("id", reordered[i].id).select().single();
-      if (updateError) { setError("บันทึกลำดับคิวไม่สำเร็จ: " + updateError.message); await loadShows(); return; }
-      setShows(current => current.map(item => item.id === reordered[i].id ? data : item));
-    }
-  };
   const today = new Date(); today.setHours(0,0,0,0);
   const next = new Date(show.next_episode_date + "T00:00:00"); next.setHours(0,0,0,0);
   return Math.round((next.getTime() - today.getTime()) / 86400000);
@@ -195,6 +164,38 @@ export default function Page() {
     const text = (show.title + " " + (show.original_title || "") + " " + (show.genre || "")).toLowerCase();
     return inTab && text.includes(query.toLowerCase());
   }).sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)), [shows, active, query]);
+  const queueShows = useMemo(() => shows.filter(show => ["watching","planned","paused"].includes(show.status)).sort((a,b) => {
+    const ao = Number(a.plan_order) || 0; const bo = Number(b.plan_order) || 0;
+    if (ao > 0 && bo > 0 && ao !== bo) return ao - bo;
+    if (ao > 0 && !bo) return -1; if (bo > 0 && !ao) return 1;
+    const score = show => (Number(show.rating) || 3) * 100 + Math.min(30, backlog(show) * 2) + (show.status === "watching" ? 5 : 0);
+    return score(b) - score(a);
+  }), [shows]);
+  const queueBacklog = queueShows.reduce((sum, show) => sum + backlog(show), 0);
+  const queueMinutes = queueShows.reduce((sum, show) => sum + backlog(show) * (Number(show.episode_duration_minutes) || 45), 0);
+  const smartArrangeQueue = async () => {
+    const ranked = [...queueShows].sort((a,b) => {
+      const score = show => (Number(show.rating) || 3) * 100 + Math.min(30, backlog(show) * 2) + (show.status === "watching" ? 5 : 0);
+      return score(b) - score(a);
+    });
+    for (let i = 0; i < ranked.length; i++) {
+      const { data, error: updateError } = await supabase.from("series_tracker_shows").update({ plan_order: i + 1, updated_at: new Date().toISOString() }).eq("id", ranked[i].id).select().single();
+      if (updateError) { setError("จัดลำดับคิวไม่สำเร็จ: " + updateError.message); return; }
+      setShows(current => current.map(item => item.id === ranked[i].id ? data : item));
+    }
+    setNotice("จัดคิวตามคะแนนความอยากดูและจำนวนตอนค้างแล้ว"); setTimeout(() => setNotice(""), 2500);
+  };
+  const moveQueueItem = async (show, direction) => {
+    const index = queueShows.findIndex(item => item.id === show.id); const target = index + direction;
+    if (target < 0 || target >= queueShows.length) return;
+    const reordered = [...queueShows]; [reordered[index], reordered[target]] = [reordered[target], reordered[index]];
+    for (let i = 0; i < reordered.length; i++) {
+      const { data, error: updateError } = await supabase.from("series_tracker_shows").update({ plan_order: i + 1, updated_at: new Date().toISOString() }).eq("id", reordered[i].id).select().single();
+      if (updateError) { setError("บันทึกลำดับคิวไม่สำเร็จ: " + updateError.message); await loadShows(); return; }
+      setShows(current => current.map(item => item.id === reordered[i].id ? data : item));
+    }
+  };
+
   const today = new Date();
   const todayKey = localDateKey(today);
   const todayName = AIR_DAYS[(today.getDay() + 6) % 7];
