@@ -183,7 +183,7 @@ export default function Page() {
   const queueMinutes = queueShows.reduce((sum, show) => sum + backlog(show) * (Number(show.episode_duration_minutes) || 45), 0);
   const todayBudgetMinutes = Number(dailyMinutesByDay[String(today.getDay())] ?? (today.getDay() === 0 || today.getDay() === 6 ? 180 : 90));
   const todayLoggedByShow = todayActivity.reduce((map, item) => { if (item.show_id) map[item.show_id] = (map[item.show_id] || 0) + Math.max(0, Number(item.episode_delta) || 0); return map; }, {});
-  const todayQueueLoggedMinutes = queueShows.reduce((sum, show) => sum + (todayLoggedByShow[show.id] || 0) * (Number(show.episode_duration_minutes) || 45), 0);
+  const todayQueueLoggedMinutes = shows.reduce((sum, show) => sum + (todayLoggedByShow[show.id] || 0) * (Number(show.episode_duration_minutes) || 45), 0);
   const dailyTasks = (() => {
     let remainingMinutes = Math.max(0, todayBudgetMinutes - todayQueueLoggedMinutes);
     const candidates = [...queueShows].filter(show => !show.last_planned_at || localDateKey(new Date(show.last_planned_at)) !== todayKey).sort((a,b) => planPriority(b) - planPriority(a));
