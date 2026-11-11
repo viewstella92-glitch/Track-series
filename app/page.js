@@ -7,6 +7,9 @@ const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const supabase = url && key ? createClient(url, key) : null;
 
+const AIR_DAYS = ["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"];
+const parseReleaseDays = value => { if (!value) return []; if (value === "ทุกวัน") return [...AIR_DAYS]; return String(value).split(",").map(day => day.trim()).filter(day => AIR_DAYS.includes(day)); };
+const releaseDayLabel = value => { const days = parseReleaseDays(value); return days.length === 7 ? "ออกอากาศทุกวัน" : days.length ? "ออกอากาศ " + days.join(" · ") : ""; };
 const STATUS = {
   watching: { label: "กำลังดู", tone: "blue" },
   completed: { label: "ดูจบแล้ว", tone: "green" },
@@ -231,7 +234,7 @@ export default function Page() {
               </button>
               <div className="series-info">
                 <div className="series-title-row"><div><h3>{show.title}</h3>{show.original_title && <p className="original-title">{show.original_title}</p>}<div className="series-rating">{"★".repeat(show.rating || 3)}{"☆".repeat(5 - (show.rating || 3))}</div></div><button className="more-button" onClick={() => openEdit(show)} aria-label="แก้ไข">···</button></div>
-                <div className="series-meta"><span>ซีซัน {show.season_number}</span>{show.genre && <><i>·</i><span>{show.genre}</span></>}{show.country && <><i>·</i><span>{show.country}</span></>}{show.release_day && <><i>·</i><span className="airing-label">{show.release_day === "ทุกวัน" ? "ออกอากาศทุกวัน" : "ออกอากาศวัน" + show.release_day}</span></>}</div>
+                <div className="series-meta"><span>ซีซัน {show.season_number}</span>{show.genre && <><i>·</i><span>{show.genre}</span></>}{show.country && <><i>·</i><span>{show.country}</span></>}{show.release_day && <><i>·</i><span className="airing-label">{releaseDayLabel(show.release_day)}</span></>}</div>
                 <div className="episode-line"><strong>EP {show.watched_episodes}</strong><span>/ {show.total_episodes ?? "—"}</span>{pct !== null && <b>{pct}%</b>}</div>
                 <div className="progress-track"><div className="progress-value" style={{ width: (pct ?? 0) + "%" }} /></div>
                 <div className="card-bottom"><div className="backlog-copy">{show.status === "watching" ? <><strong>{backlog(show)}</strong> ตอนค้างดู</> : show.status === "planned" ? "รอเริ่มรับชม" : show.status === "completed" ? "รับชมครบแล้ว" : STATUS[show.status]?.label}</div>
@@ -259,7 +262,7 @@ export default function Page() {
          <label>จำนวนตอนต่อรอบ<input type="number" min="1" max="30" value={form.plan_episodes || 3} onChange={e => setForm({ ...form, plan_episodes: e.target.value })} /><small className="field-hint">ใช้เป็นค่าตั้งต้น ระบบจะปรับตามดาวและตอนค้าง (ไม่เกิน 3 ตอนต่อรอบ)</small></label>
         <label>ออกอากาศแล้ว<input type="number" min="0" value={form.released_episodes} onChange={e => setForm({ ...form, released_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
         <label>จำนวนตอนทั้งหมด<input type="number" min="0" value={form.total_episodes} onChange={e => setForm({ ...form, total_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
-        <label>รูปแบบวันออกอากาศ<select value={form.release_day || ""} onChange={e => setForm({ ...form, release_day: e.target.value })}><option value="">ไม่ระบุ</option><option value="ทุกวัน">ทุกวัน</option>{["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"].map(day => <option key={day} value={day}>{day}</option>)}</select></label>
+        <fieldset className="wide air-days-field"><legend>วันออกอากาศ <span className="field-hint">เลือกได้มากกว่า 1 วัน</span></legend><div className="air-days-picker">{AIR_DAYS.map(day => { const selected = parseReleaseDays(form.release_day).includes(day); return <label key={day} className={selected ? "air-day selected" : "air-day"}><input type="checkbox" checked={selected} onChange={e => { const days = parseReleaseDays(form.release_day); const next = e.target.checked ? [...days, day] : days.filter(item => item !== day); setForm({ ...form, release_day: AIR_DAYS.filter(item => next.includes(item)).join(",") }); }} /><span>{day}</span></label>; })}</div><small className="field-hint">ไม่เลือกวันได้ หากยังไม่ทราบตารางออกอากาศ</small></fieldset>
         <label>วันตอนถัดไป<input type="date" value={form.next_episode_date || ""} onChange={e => setForm({ ...form, next_episode_date: e.target.value })} /></label>
         <label className="wide">สถานะ<select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>{Object.entries(STATUS).map(([id, value]) => <option key={id} value={id}>{value.label}</option>)}</select></label>
         <label className="wide">บันทึกเพิ่มเติม<textarea rows="3" value={form.notes || ""} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="จดรายละเอียดที่อยากจำ…" /></label>
