@@ -10,6 +10,27 @@ const supabase = url && key ? createClient(url, key) : null;
 const AIR_DAYS = ["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"];
 const parseReleaseDays = value => { if (!value) return []; if (value === "ทุกวัน") return [...AIR_DAYS]; return String(value).split(",").map(day => day.trim()).filter(day => AIR_DAYS.includes(day)); };
 const releaseDayLabel = value => { const days = parseReleaseDays(value); return days.length === 7 ? "ออกอากาศทุกวัน" : days.length ? "ออกอากาศ " + days.join(" · ") : ""; };
+const localDateKey = date => [date.getFullYear(), String(date.getMonth()+1).padStart(2,"0"), String(date.getDate()).padStart(2,"0")].join("-");
+const dueReleaseUpdate = (show, todayKey) => {
+  if (!show.next_episode_date || show.next_episode_date > todayKey || show.status !== "watching") return null;
+  const days = parseReleaseDays(show.release_day);
+  const cursor = new Date(show.next_episode_date + "T00:00:00Z");
+  const end = new Date(todayKey + "T00:00:00Z");
+  let added = 0; let first = true;
+  while (cursor <= end && added < 366) {
+    const weekday = AIR_DAYS[(cursor.getUTCDay() + 6) % 7];
+    if (first || days.includes(weekday)) added += Math.max(1, Number(show.episodes_per_release) || 1);
+    first = false; cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  let nextDate = null;
+  if (days.length) {
+    for (let i = 1; i <= 7; i++) {
+      const candidate = new Date(end); candidate.setUTCDate(candidate.getUTCDate() + i);
+      if (days.includes(AIR_DAYS[(candidate.getUTCDay() + 6) % 7])) { nextDate = candidate.toISOString().slice(0,10); break; }
+    }
+  }
+  return { added, nextDate };
+};
 const STATUS = {
   watching: { label: "กำลังดู", tone: "blue" },
   completed: { label: "ดูจบแล้ว", tone: "green" },
@@ -90,7 +111,19 @@ export default function Page() {
     setDataReady(false); setError("");
     const { data, error: loadError } = await supabase.from("series_tracker_shows").select("*").order("updated_at", { ascending: false });
     if (loadError) setError("โหลดข้อมูลไม่สำเร็จ: " + loadError.message);
-    else setShows(data || []);
+    else {
+      const todayKey = localDateKey(new Date());
+      const refreshed = [];
+      for (const show of data || []) {
+        const due = dueReleaseUpdate(show, todayKey);
+        if (!due || !due.added) { refreshed.push(show); continue; }
+        const released = Number(show.released_episodes ?? show.watched_episodes ?? 0);
+        const result = await supabase.from("series_tracker_shows").update({ released_episodes: released + due.added, next_episode_date: due.nextDate, updated_at: new Date().toISOString() }).eq("id", show.id).eq("next_episode_date", show.next_episode_date).select().maybeSingle();
+        if (result.error) { setError("อัปเดตตอนใหม่อัตโนมัติไม่สำเร็จ: " + result.error.message); refreshed.push(show); }
+        else refreshed.push(result.data || show);
+      }
+      setShows(refreshed);
+    }
     const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
     const { data: activity } = await supabase.from("series_tracker_activity").select("id, show_id, show_title, episode_delta, created_at").gte("created_at", dayStart.toISOString()).order("created_at", { ascending: false });
     setTodayActivity(activity || []);
@@ -103,6 +136,7 @@ export default function Page() {
     if (!supabase) return;
     const channel = supabase.channel("series-sync-personal")
       .on("postgres_changes", { event: "*", schema: "public", table: "series_tracker_shows" }, () => loadShows())
+      .on("postgres_changes", { event: "*", schema: "public", table: "series_tracker_activity" }, () => loadShows())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [loadShows]);
@@ -122,7 +156,7 @@ export default function Page() {
     return inTab && text.includes(query.toLowerCase());
   }).sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)), [shows, active, query]);
   const today = new Date();
-  const todayKey = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
+  const todayKey = localDateKey(today);
   const todayName = AIR_DAYS[(today.getDay() + 6) % 7];
   const airingToday = useMemo(() => shows.filter(show => show.status === "watching" && (show.next_episode_date === todayKey || parseReleaseDays(show.release_day).includes(todayName))), [shows, todayKey, todayName]);
   const todayEpisodeCount = todayActivity.reduce((sum, item) => sum + Math.max(0, Number(item.episode_delta) || 0), 0);
