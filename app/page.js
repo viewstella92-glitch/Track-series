@@ -39,8 +39,8 @@ const STATUS = {
   dropped: { label: "เลิกดู", tone: "muted" },
 };
 const NAV = [
-  { id: "all", label: "ภาพรวม", icon: "◫" },
   { id: "queue", label: "Flashcard Queue", icon: "▤" },
+  { id: "all", label: "ภาพรวม", icon: "◫" },
   { id: "watching", label: "กำลังดู", icon: "▶" },
   { id: "planned", label: "อยากดู", icon: "♡" },
   { id: "completed", label: "ดูจบแล้ว", icon: "✓" },
@@ -99,7 +99,7 @@ const wasPlannedRecently = show => show.last_planned_at && Date.now() - new Date
 export default function Page() {
   const [shows, setShows] = useState([]);
   const [dataReady, setDataReady] = useState(false);
-  const [active, setActive] = useState("all");
+  const [active, setActive] = useState("queue");
   const [query, setQuery] = useState("");
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -277,6 +277,7 @@ export default function Page() {
     <section className="main-area">
       <header className="topbar"><div className="breadcrumb">MY LIBRARY <span>/</span> {active === "all" ? "OVERVIEW" : active === "queue" ? "FLASHCARD QUEUE" : STATUS[active]?.label?.toUpperCase()}</div><div className="topbar-right"><span className="sync-state"><i /> SYNCED</span><button className="button primary add-top" onClick={openAdd}>＋ เพิ่มซีรีส์</button></div></header>
       <div className="content-wrap">
+        {active !== "queue" && <>
         <section className="welcome-row"><div><span className="eyebrow">YOUR WATCH JOURNAL</span><h1>วันนี้ดูอะไรดี <em>?</em></h1><p>การ์ดซีรีส์ทั้งหมดของคุณ พร้อมสถานะตอนล่าสุดและกำหนดออกอากาศ</p></div><div className="date-pill">{new Date().toLocaleDateString("th-TH", { weekday:"long", day: "numeric", month: "long", year: "numeric" })}</div></section>
         <section className="today-dashboard">
           <div className="today-summary">
@@ -298,6 +299,7 @@ export default function Page() {
             </div>) : <div className="today-empty">ไม่มีซีรีส์ที่กำหนดให้ออกวันนี้ ✧<small>เพิ่มวันออกอากาศหรือวันตอนถัดไปในรายละเอียดซีรีส์ได้</small></div>}
           </div>
         </section>
+        </>}
         {active === "queue" && <section className="flashcard-queue-section">
           <div className="flashcard-queue-heading"><div><span className="eyebrow">YOUR NEXT WATCH LIST</span><h2>Flashcard Queue <span>{queueShows.length} เรื่อง</span></h2><p>คิวซีรีย์ที่คุณเลือกเอง จัดลำดับและปรับจำนวนตอนที่จะดูได้ตลอด</p></div><button className="button primary" onClick={smartArrangeQueue} disabled={queueShows.length < 2}>✦ จัดคิวอัจฉริยะ</button></div>
           <div className="flashcard-queue-stats"><div><small>ตอนที่ค้างทั้งหมด</small><strong>{queueBacklog.toLocaleString("th-TH")} <i>ตอน</i></strong></div><div><small>เวลาที่ต้องใช้โดยประมาณ</small><strong>{Math.floor(queueMinutes / 60)} <i>ชม.</i> {queueMinutes % 60} <i>นาที</i></strong></div><div><small>เรื่องที่อยู่ในคิว</small><strong>{queueShows.length} <i>เรื่อง</i></strong></div></div>
