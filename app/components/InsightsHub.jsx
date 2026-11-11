@@ -92,6 +92,8 @@ export default function InsightsHub({ shows, onRefresh }) {
   const remaining=activeShows.reduce((n,s)=>n+available(s),0);
   const backlogMinutes=activeShows.reduce((n,s)=>n+available(s)*Math.max(5,Number(s.episode_duration_minutes)||prefs.episode_minutes||45),0);
   const averageDailyMinutes=Object.values(prefs.daily_minutes||DEFAULT_DAILY).reduce((n,v)=>n+(Number(v)||0),0)/7;
+  const averageEpisodeMinutes=activeShows.length?activeShows.reduce((n,show)=>n+Math.max(5,Number(show.episode_duration_minutes)||prefs.episode_minutes||45),0)/activeShows.length:(prefs.episode_minutes||45);
+  const dailyCapacity=averageEpisodeMinutes>0?averageDailyMinutes/averageEpisodeMinutes:0;
   const finishDays=averageDailyMinutes>0?Math.ceil(backlogMinutes/averageDailyMinutes):null;
   const finishDate=finishDays==null?null:new Date(Date.now()+finishDays*86400000);
 
