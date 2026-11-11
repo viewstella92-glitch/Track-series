@@ -536,3 +536,17 @@ html,body{background:#f3f1ec;color:#222321}
 .smart-notices-empty{padding:20px;border-radius:14px;background:rgba(255,255,255,.7);color:#647067;font-size:13px;text-align:center}
 .smart-notices-empty small{display:block;margin-top:5px;color:#92978f;font-size:11px}
 @media(max-width:700px){.smart-notices{padding:17px 14px;margin:18px 0 26px;border-radius:17px}.smart-notices-list{grid-template-columns:1fr;gap:8px}.smart-notice{padding:12px}.smart-notices-heading p{max-width:260px;line-height:1.5}}
+
+
+/* Overall progress + per-series progress refinements */
+.overall-progress-panel{max-width:1180px;margin:0 auto 22px;padding:20px 23px;background:#fff;border:1px solid #e8e5dc;border-radius:18px;box-shadow:0 5px 18px rgba(35,31,25,.025)}
+.overall-progress-heading{display:flex;align-items:center;justify-content:space-between;gap:18px}
+.overall-progress-heading h3{margin:5px 0 3px;color:#29332c;font-size:17px;font-weight:750}
+.overall-progress-heading p{margin:0;color:#8b8b82;font-size:11px}
+.overall-progress-heading>strong{font:750 30px Manrope,'Noto Sans Thai',sans-serif;color:#a85f3c;white-space:nowrap}
+.overall-progress-track{height:10px;margin:16px 0 10px;border-radius:20px;background:#efede6;overflow:hidden}
+.overall-progress-track i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#a85f3c,#d8a17d);transition:width .35s ease}
+.overall-progress-meta{display:flex;justify-content:space-between;gap:12px;color:#73786f;font-size:11px}
+.overall-progress-hint{display:block;margin-top:9px;color:#a07855;font-size:10px}
+.series-progress-caption{margin-top:-5px;margin-bottom:8px;color:#929188;font-size:9px;line-height:1.4}
+@media(max-width:600px){.overall-progress-panel{padding:15px 13px;margin-bottom:16px;border-radius:14px}.overall-progress-heading h3{font-size:14px}.overall-progress-heading p{font-size:9px;max-width:240px}.overall-progress-heading>strong{font-size:24px}.overall-progress-track{height:8px;margin:12px 0 8px}.overall-progress-meta{font-size:9px;flex-direction:column;gap:3px}.series-progress-caption{font-size:8px}}
