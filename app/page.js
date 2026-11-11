@@ -248,7 +248,7 @@ export default function Page() {
   async function changeEpisodes(show, delta) {
     const next = Math.max(0, show.watched_episodes + delta);
     if (show.total_episodes !== null && next > show.total_episodes) return;
-    const nextStatus = show.total_episodes !== null && next === show.total_episodes && show.status === "watching" ? "completed" : show.status === "completed" && next < show.total_episodes ? "watching" : show.status;
+    const nextStatus = show.total_episodes !== null && next === show.total_episodes ? "completed" : ["planned","paused"].includes(show.status) && delta > 0 ? "watching" : show.status === "completed" && next < show.total_episodes ? "watching" : show.status;
     const { data, error: updateError } = await supabase.from("series_tracker_shows").update({ watched_episodes: next, status: nextStatus, updated_at: new Date().toISOString() }).eq("id", show.id).select().single();
     if (updateError) setError("อัปเดตตอนไม่สำเร็จ: " + updateError.message);
     else {
