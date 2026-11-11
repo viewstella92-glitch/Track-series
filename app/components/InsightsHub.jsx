@@ -4,7 +4,9 @@ import { createClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const OWNER = "00000000-0000-0000-0000-000000000001";
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 const DAYS = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
 const TABS = [{id:"planner",label:"แผนดูอัจฉริยะ"},{id:"calendar",label:"ปฏิทิน"},{id:"stats",label:"สถิติ"},{id:"dna",label:"Watch DNA"},{id:"backup",label:"สำรองข้อมูล"}];
 const dayNames = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
@@ -115,7 +117,7 @@ export default function InsightsHub({ shows, onRefresh }) {
       if(data.app!=="SeriDays"||!Array.isArray(data.shows))throw new Error("ไฟล์นี้ไม่ใช่ไฟล์สำรองของ SeriDays");
       const rows=data.shows.filter(s=>s.title).map(s=>({...s,user_id:OWNER,updated_at:new Date().toISOString()}));
       if(rows.length){const {error}=await supabase.from("series_tracker_shows").upsert(rows,{onConflict:"id",ignoreDuplicates:true});if(error)throw error;}
-      if(data.preferences){const clean={weekday_minutes:Math.max(0,Math.min(720,Number(data.preferences.weekday_minutes)||90)),weekend_minutes:Math.max(0,Math.min(720,Number(data.preferences.weekend_minutes)||180)),episode_minutes:Math.max(10,Math.min(240,Number(data.preferences.episode_minutes)||45))};await savePrefs(clean);}
+      if(data.preferences){const clean={weekday_minutes:Math.max(0,Math.min(720,Number(data.preferences.weekday_minutes)||90)),weekend_minutes:Math.max(0,Math.min(720,Number(data.preferences.weekend_minutes)||180)),episode_minutes:Math.max(10,Math.min(240,Number(data.preferences.episode_minutes)||45))};setPrefs(clean);const {error:prefError}=await supabase.from("series_tracker_preferences").upsert({...clean,user_id:OWNER,updated_at:new Date().toISOString()},{onConflict:"user_id"});if(prefError)throw prefError;}
       if(Array.isArray(data.activity)&&data.activity.length){const logs=data.activity.filter(x=>x.show_title&&Number(x.episode_delta)>0).map(x=>({...x,user_id:OWNER}));if(logs.length){const {error}=await supabase.from("series_tracker_activity").upsert(logs,{onConflict:"id",ignoreDuplicates:true});if(error)throw error;}}
       await Promise.all([loadHub(),onRefresh?.()]);
       setMessage("นำเข้าข้อมูลแล้ว โดยไม่เขียนทับซีรีส์ที่มี ID ซ้ำ");
