@@ -65,3 +65,63 @@ button,input,select,textarea{font-family:'Noto Sans Thai','DM Sans',sans-serif}
   .next-episode{font-size:10px}
   .form-grid label{font-size:12px}
 }
+
+
+/* Flashcard-style watch planner */
+.watch-plan-section{margin:0 0 30px}
+.plan-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:14px}
+.plan-heading h2{font:700 22px 'Noto Sans Thai','Manrope',sans-serif;margin:6px 0 3px;color:#302b3c}
+.plan-heading h2 span{font:500 12px 'Noto Sans Thai',sans-serif;color:#9992a0;margin-left:8px}
+.plan-heading p{font-size:12px;color:#928c99;margin:0}
+.plan-badge{font:700 9px Manrope,sans-serif;letter-spacing:1.5px;color:#806ba5;background:#eee9f6;padding:8px 11px;border-radius:30px;white-space:nowrap}
+.plan-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(250px,.8fr);gap:14px}
+.plan-feature-card{display:grid;grid-template-columns:190px 1fr;min-height:250px;background:linear-gradient(135deg,#fff 0%,#faf8fc 100%);border:1px solid #e9e4ef;border-radius:16px;padding:13px;gap:20px;box-shadow:0 12px 32px rgba(45,35,60,.055)}
+.plan-feature-poster{position:relative;min-height:220px;border-radius:11px;overflow:hidden;background:#e9e2ef}
+.plan-feature-poster img{width:100%;height:100%;min-height:220px;object-fit:cover;display:block}
+.plan-feature-poster .poster-placeholder{min-height:220px}
+.plan-step{position:absolute;left:9px;top:9px;background:rgba(39,34,49,.78);color:#fff;border-radius:30px;padding:6px 9px;font:700 8px Manrope,sans-serif;letter-spacing:1px}
+.plan-feature-info{display:flex;flex-direction:column;align-items:flex-start;padding:9px 8px 8px 0;min-width:0}
+.plan-current-label{display:flex;align-items:center;gap:7px;color:#7c699e;font-size:11px;font-weight:700}
+.plan-current-label i{width:7px;height:7px;background:#8a73b2;border-radius:50%;box-shadow:0 0 0 4px #eee9f6}
+.plan-feature-info h3{font:700 23px 'Noto Sans Thai','DM Sans',sans-serif;color:#302b3c;margin:14px 0 0;line-height:1.4}
+.plan-original{font-size:11px;color:#a29ba8;margin:3px 0 0}
+.plan-episode-target{display:grid;grid-template-columns:1fr auto;align-items:center;width:100%;background:#f1edf7;border:1px solid #e9e1f2;border-radius:11px;padding:11px 14px;margin:16px 0 9px}
+.plan-episode-target span{font-size:11px;color:#76698b}
+.plan-episode-target strong{grid-row:span 2;font:800 31px Manrope,sans-serif;color:#6d5794;line-height:1}
+.plan-episode-target strong small{font:600 12px 'Noto Sans Thai',sans-serif}
+.plan-episode-target em{font-style:normal;font-size:10px;color:#9b8eae}
+.plan-remaining{font-size:10px;color:#9c96a2}
+.plan-feature-actions{display:flex;align-items:center;gap:12px;margin-top:auto;padding-top:15px;flex-wrap:wrap}
+.plan-done{padding:11px 16px;font-size:12px}
+.plan-edit{border:0;background:transparent;color:#88799c;font-size:11px;padding:8px}
+.plan-queue{background:#fff;border:1px solid #eeebf1;border-radius:16px;padding:16px;min-width:0}
+.queue-title{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #f0edf2}
+.queue-title strong{font-size:13px;color:#494052}
+.queue-title span{font:700 8px Manrope,sans-serif;letter-spacing:1.4px;color:#aaa2b0}
+.queue-card{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #f3f0f5;min-width:0}
+.queue-number{font:700 11px Manrope,sans-serif;color:#b6a9c8;width:18px}
+.queue-poster{width:38px;height:49px;border-radius:6px;overflow:hidden;background:#eee8f4;flex:0 0 38px;display:grid;place-items:center;color:#806ca2;font-weight:700}
+.queue-poster img{width:100%;height:100%;object-fit:cover}
+.queue-copy{display:grid;gap:4px;min-width:0;flex:1}
+.queue-copy strong{font-size:11px;color:#50475a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.queue-copy span{font-size:10px;color:#9d96a3}
+.queue-card>button{border:0;background:transparent;color:#aaa2b0;font-size:18px;padding:4px}
+.queue-more{font-size:10px;color:#948b9c;padding-top:12px}
+.queue-empty,.plan-loading{font-size:11px;color:#a29aa9;text-align:center;line-height:1.8;padding:28px 10px}
+.plan-empty{display:flex;align-items:center;gap:15px;background:#fff;border:1px dashed #ded6e8;border-radius:14px;padding:20px}
+.plan-empty-icon{width:42px;height:42px;border-radius:12px;background:#f0ebf7;color:#907bb1;display:grid;place-items:center;font-size:22px;flex:0 0 42px}
+.plan-empty>div:nth-child(2){flex:1}
+.plan-empty strong{font-size:13px;color:#554b60}
+.plan-empty p{font-size:11px;color:#9992a0;margin:4px 0 0;line-height:1.6}
+.field-hint{font-size:10px;color:#9b94a2;font-weight:400}
+@media(max-width:900px){.plan-layout{grid-template-columns:1fr}.plan-queue{display:grid;grid-template-columns:1fr 1fr;column-gap:16px}.queue-title{grid-column:1/-1}.queue-card{min-width:0}}
+@media(max-width:700px){
+ .plan-heading{align-items:flex-start}.plan-heading h2{font-size:20px}.plan-heading p{font-size:10px}.plan-badge{font-size:7px;padding:7px 8px}
+ .plan-feature-card{grid-template-columns:108px 1fr;gap:12px;padding:10px;min-height:205px}
+ .plan-feature-poster,.plan-feature-poster img,.plan-feature-poster .poster-placeholder{min-height:185px}
+ .plan-feature-info{padding:3px 2px 3px 0}.plan-feature-info h3{font-size:16px;margin-top:10px}
+ .plan-current-label{font-size:9px}.plan-original{font-size:9px}
+ .plan-episode-target{padding:8px 10px;margin:10px 0 7px}.plan-episode-target strong{font-size:25px}.plan-episode-target span{font-size:9px}.plan-episode-target em{font-size:8px}
+ .plan-remaining{font-size:8px;line-height:1.5}.plan-feature-actions{gap:4px;padding-top:9px}.plan-done{font-size:9px;padding:9px 10px}.plan-edit{font-size:9px;padding:7px 4px}
+ .plan-queue{padding:12px;grid-template-columns:1fr}.queue-title{grid-column:auto}.plan-empty{align-items:flex-start;flex-wrap:wrap}.plan-empty>div:nth-child(2){min-width:calc(100% - 60px)}
+}
