@@ -165,7 +165,7 @@ export default function Page() {
               </button>
               <div className="series-info">
                 <div className="series-title-row"><div><h3>{show.title}</h3>{show.original_title && <p className="original-title">{show.original_title}</p>}</div><button className="more-button" onClick={() => openEdit(show)} aria-label="แก้ไข">···</button></div>
-                <div className="series-meta"><span>ซีซัน {show.season_number}</span>{show.genre && <><i>·</i><span>{show.genre}</span></>}{show.country && <><i>·</i><span>{show.country}</span></>}</div>
+                <div className="series-meta"><span>ซีซัน {show.season_number}</span>{show.genre && <><i>·</i><span>{show.genre}</span></>}{show.country && <><i>·</i><span>{show.country}</span></>}{show.release_day && <><i>·</i><span className="airing-label">{show.release_day === "ทุกวัน" ? "ออกอากาศทุกวัน" : "ออกอากาศวัน" + show.release_day}</span></>}</div>
                 <div className="episode-line"><strong>EP {show.watched_episodes}</strong><span>/ {show.total_episodes ?? "—"}</span>{pct !== null && <b>{pct}%</b>}</div>
                 <div className="progress-track"><div className="progress-value" style={{ width: (pct ?? 0) + "%" }} /></div>
                 <div className="card-bottom"><div className="backlog-copy">{show.status === "watching" ? <><strong>{backlog(show)}</strong> ตอนค้างดู</> : show.status === "planned" ? "รอเริ่มรับชม" : show.status === "completed" ? "รับชมครบแล้ว" : STATUS[show.status]?.label}</div>
@@ -191,7 +191,7 @@ export default function Page() {
         <label>ดูแล้ว<input type="number" min="0" value={form.watched_episodes} onChange={e => setForm({ ...form, watched_episodes: e.target.value })} /></label>
         <label>ออกอากาศแล้ว<input type="number" min="0" value={form.released_episodes} onChange={e => setForm({ ...form, released_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
         <label>จำนวนตอนทั้งหมด<input type="number" min="0" value={form.total_episodes} onChange={e => setForm({ ...form, total_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
-        <label>วันออกอากาศ<select value={form.release_day || ""} onChange={e => setForm({ ...form, release_day: e.target.value })}><option value="">ไม่ระบุ</option>{["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"].map(day => <option key={day}>{day}</option>)}</select></label>
+        <label>รูปแบบวันออกอากาศ<select value={form.release_day || ""} onChange={e => setForm({ ...form, release_day: e.target.value })}><option value="">ไม่ระบุ</option><option value="ทุกวัน">ทุกวัน</option>{["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"].map(day => <option key={day} value={day}>{day}</option>)}</select></label>
         <label>วันตอนถัดไป<input type="date" value={form.next_episode_date || ""} onChange={e => setForm({ ...form, next_episode_date: e.target.value })} /></label>
         <label className="wide">สถานะ<select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>{Object.entries(STATUS).map(([id, value]) => <option key={id} value={id}>{value.label}</option>)}</select></label>
         <label className="wide">บันทึกเพิ่มเติม<textarea rows="3" value={form.notes || ""} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="จดรายละเอียดที่อยากจำ…" /></label>
