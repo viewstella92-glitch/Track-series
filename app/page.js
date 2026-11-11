@@ -38,7 +38,8 @@ const planCount = show => {
   const base = stars >= 5 ? 2 : stars >= 3 ? 2 : 1;
   const backlogBonus = backlog(show) >= 10 ? 1 : 0;
   const airingBonus = isAiring(show) ? 1 : 0;
-  return Math.min(3, planAvailable(show), base + backlogBonus + airingBonus);
+  const preferredLimit = Math.min(3, Math.max(1, Number(show.plan_episodes) || 3));
+  return Math.min(preferredLimit, planAvailable(show), base + backlogBonus + airingBonus);
 };
 const planPriority = show => {
   const stars = Math.min(5, Math.max(1, Number(show.rating) || 3));
@@ -229,7 +230,7 @@ export default function Page() {
                 <span className={"status-tag " + STATUS[show.status]?.tone}>{STATUS[show.status]?.label}</span>
               </button>
               <div className="series-info">
-                <div className="series-title-row"><div><h3>{show.title}</h3>{show.original_title && <p className="original-title">{show.original_title}</p>}</div><button className="more-button" onClick={() => openEdit(show)} aria-label="แก้ไข">···</button></div>
+                <div className="series-title-row"><div><h3>{show.title}</h3>{show.original_title && <p className="original-title">{show.original_title}</p>}<div className="series-rating">{"★".repeat(show.rating || 3)}{"☆".repeat(5 - (show.rating || 3))}</div></div><button className="more-button" onClick={() => openEdit(show)} aria-label="แก้ไข">···</button></div>
                 <div className="series-meta"><span>ซีซัน {show.season_number}</span>{show.genre && <><i>·</i><span>{show.genre}</span></>}{show.country && <><i>·</i><span>{show.country}</span></>}{show.release_day && <><i>·</i><span className="airing-label">{show.release_day === "ทุกวัน" ? "ออกอากาศทุกวัน" : "ออกอากาศวัน" + show.release_day}</span></>}</div>
                 <div className="episode-line"><strong>EP {show.watched_episodes}</strong><span>/ {show.total_episodes ?? "—"}</span>{pct !== null && <b>{pct}%</b>}</div>
                 <div className="progress-track"><div className="progress-value" style={{ width: (pct ?? 0) + "%" }} /></div>
