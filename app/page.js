@@ -110,6 +110,14 @@ export default function Page() {
 
   useEffect(() => { if (session) loadShows(); else { setShows([]); setDataReady(true); } }, [session, loadShows]);
 
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const channel = supabase.channel("series-sync-" + session.user.id)
+      .on("postgres_changes", { event: "*", schema: "public", table: "series_tracker_shows", filter: "user_id=eq." + session.user.id }, () => loadShows())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [session?.user?.id, loadShows]);
+
   const counts = useMemo(() => {
     const result = { all: shows.filter(s => s.status !== "dropped").length, watching: 0, planned: 0, completed: 0, paused: 0 };
     shows.forEach(show => { if (result[show.status] !== undefined) result[show.status] += 1; });
