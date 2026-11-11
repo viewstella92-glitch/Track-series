@@ -176,6 +176,9 @@ export default function Page() {
     const score = show => (Number(show.rating) || 3) * 100 + Math.min(30, backlog(show) * 2) + (show.status === "watching" ? 5 : 0);
     return score(b) - score(a);
   }), [shows]);
+  const today = new Date();
+  const todayKey = localDateKey(today);
+  const todayName = AIR_DAYS[(today.getDay() + 6) % 7];
   const queueBacklog = queueShows.reduce((sum, show) => sum + backlog(show), 0);
   const queueMinutes = queueShows.reduce((sum, show) => sum + backlog(show) * (Number(show.episode_duration_minutes) || 45), 0);
   const todayBudgetMinutes = Number(dailyMinutesByDay[String(today.getDay())] ?? (today.getDay() === 0 || today.getDay() === 6 ? 180 : 90));
@@ -241,9 +244,6 @@ export default function Page() {
     }
   };
 
-  const today = new Date();
-  const todayKey = localDateKey(today);
-  const todayName = AIR_DAYS[(today.getDay() + 6) % 7];
   const airingToday = useMemo(() => shows.filter(show => show.status === "watching" && (show.next_episode_date === todayKey || parseReleaseDays(show.release_day).includes(todayName))), [shows, todayKey, todayName]);
   const todayEpisodeCount = todayActivity.reduce((sum, item) => sum + Math.max(0, Number(item.episode_delta) || 0), 0);
   const todayWatchedTitles = [...new Set(todayActivity.filter(item => Number(item.episode_delta) > 0).map(item => item.show_title))];
