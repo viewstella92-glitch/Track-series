@@ -134,6 +134,14 @@ export default function Page() {
 
   useEffect(() => {
     if (!supabase) return;
+    const now = new Date();
+    const midnight = new Date(now); midnight.setHours(24, 0, 5, 0);
+    const timer = setTimeout(() => loadShows(), Math.max(1000, midnight.getTime() - now.getTime()));
+    return () => clearTimeout(timer);
+  }, [loadShows]);
+
+  useEffect(() => {
+    if (!supabase) return;
     const channel = supabase.channel("series-sync-personal")
       .on("postgres_changes", { event: "*", schema: "public", table: "series_tracker_shows" }, () => loadShows())
       .on("postgres_changes", { event: "*", schema: "public", table: "series_tracker_activity" }, () => loadShows())
@@ -190,6 +198,7 @@ export default function Page() {
       : await supabase.from("series_tracker_shows").insert(payload).select().single();
     if (result.error) { setError("บันทึกไม่สำเร็จ: " + result.error.message); setSaving(false); return; }
     setShows(current => form.id ? current.map(item => item.id === form.id ? result.data : item) : [result.data, ...current]);
+    if (!form.id) await loadShows();
     setModal(false); setSaving(false); setNotice(form.id ? "อัปเดตซีรีส์แล้ว" : "เพิ่มซีรีส์เข้าลิสต์แล้ว");
     setTimeout(() => setNotice(""), 2500);
   }
