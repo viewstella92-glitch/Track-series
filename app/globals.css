@@ -138,3 +138,15 @@ button,input,select,textarea{font-family:'Noto Sans Thai','DM Sans',sans-serif}
 .queue-copy span{line-height:1.45}
 @media(max-width:700px){.rating-star{font-size:25px}.rating-field{padding:10px!important}.plan-reason{font-size:8px}}
 .series-rating{font-size:10px;letter-spacing:1px;color:#e1a83d;margin-top:4px;line-height:1}
+
+
+/* Multiple weekday release selector */
+.air-days-field{border:1px solid #e9e5ed;border-radius:10px;padding:12px 13px;background:#fcfbfd;margin:0;min-width:0}
+.air-days-field legend{padding:0 5px;font-size:12px;font-weight:700;color:#817b88}
+.air-days-field legend .field-hint{margin-left:5px}
+.air-days-picker{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}
+.air-day{position:relative;display:inline-flex!important;cursor:pointer}
+.air-day input{position:absolute!important;opacity:0;width:1px!important;height:1px!important;min-height:0!important}
+.air-day span{display:inline-flex;align-items:center;justify-content:center;border:1px solid #e8e2ee;border-radius:20px;padding:7px 12px;background:#fff;color:#8c8494;font-size:11px;font-weight:500;transition:.15s}
+.air-day.selected span{background:#eee8f6;border-color:#cfc1e2;color:#66518b;font-weight:700}
+.air-day input:focus-visible+span{outline:2px solid #9c87bd;outline-offset:2px}
