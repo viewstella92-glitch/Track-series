@@ -137,3 +137,4 @@ button,input,select,textarea{font-family:'Noto Sans Thai','DM Sans',sans-serif}
 .plan-reason{font-size:10px;color:#8c7b9d;margin-top:7px;line-height:1.5}
 .queue-copy span{line-height:1.45}
 @media(max-width:700px){.rating-star{font-size:25px}.rating-field{padding:10px!important}.plan-reason{font-size:8px}}
+.series-rating{font-size:10px;letter-spacing:1px;color:#e1a83d;margin-top:4px;line-height:1}
