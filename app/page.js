@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import InsightsHub from "./components/InsightsHub";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -84,6 +83,7 @@ export default function Page() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState("");
+  const [todayActivity, setTodayActivity] = useState([]);
   const [error, setError] = useState("");
 
   const loadShows = useCallback(async () => {
@@ -91,6 +91,9 @@ export default function Page() {
     const { data, error: loadError } = await supabase.from("series_tracker_shows").select("*").order("updated_at", { ascending: false });
     if (loadError) setError("โหลดข้อมูลไม่สำเร็จ: " + loadError.message);
     else setShows(data || []);
+    const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0);
+    const { data: activity } = await supabase.from("series_tracker_activity").select("id, show_id, show_title, episode_delta, created_at").gte("created_at", dayStart.toISOString()).order("created_at", { ascending: false });
+    setTodayActivity(activity || []);
     setDataReady(true);
   }, []);
 
@@ -118,13 +121,12 @@ export default function Page() {
     const text = (show.title + " " + (show.original_title || "") + " " + (show.genre || "")).toLowerCase();
     return inTab && text.includes(query.toLowerCase());
   }).sort((a,b) => backlog(b) - backlog(a)), [shows, active, query]);
-  const recommendation = shows.filter(s => s.status === "watching").sort((a,b) => backlog(b) - backlog(a))[0];
-  const watchPlan = useMemo(() => shows.filter(show => ["watching", "planned"].includes(show.status) && planAvailable(show) > 0).sort((a,b) =>
-    (planPriority(b) - (wasPlannedRecently(b) ? 7 : 0)) -
-    (planPriority(a) - (wasPlannedRecently(a) ? 7 : 0)) ||
-    (a.plan_order ?? 0) - (b.plan_order ?? 0) ||
-    new Date(a.created_at || 0) - new Date(b.created_at || 0)
-  ), [shows]);
+  const today = new Date();
+  const todayKey = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
+  const todayName = AIR_DAYS[(today.getDay() + 6) % 7];
+  const airingToday = useMemo(() => shows.filter(show => show.status === "watching" && (show.next_episode_date === todayKey || parseReleaseDays(show.release_day).includes(todayName))), [shows, todayKey, todayName]);
+  const todayEpisodeCount = todayActivity.reduce((sum, item) => sum + Math.max(0, Number(item.episode_delta) || 0), 0);
+  const todayWatchedTitles = [...new Set(todayActivity.filter(item => Number(item.episode_delta) > 0).map(item => item.show_title))];
 
   function openAdd() { setForm({ ...EMPTY }); setError(""); setModal(true); }
   function openEdit(show) { setForm({ ...EMPTY, ...show, plan_episodes: show.plan_episodes || 3, rating: show.rating || 3, episodes_per_release: show.episodes_per_release || 1, episode_duration_minutes: show.episode_duration_minutes || 45, released_episodes: show.released_episodes ?? "", total_episodes: show.total_episodes ?? "", next_episode_date: show.next_episode_date || "" }); setError(""); setModal(true); }
@@ -182,25 +184,6 @@ export default function Page() {
     else setShows(current => current.map(item => item.id === show.id ? data : item));
   }
 
-  async function completePlan(show) {
-    const amount = planCount(show);
-    if (!amount) return;
-    const nextWatched = show.watched_episodes + amount;
-    const finished = show.total_episodes != null && nextWatched >= show.total_episodes;
-    const nextOrder = Math.max(0, ...shows.map(item => Number(item.plan_order) || 0)) + 1;
-    const { data, error: updateError } = await supabase.from("series_tracker_shows").update({
-      watched_episodes: nextWatched, status: finished ? "completed" : "watching",
-      plan_order: nextOrder, last_planned_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-    }).eq("id", show.id).select().single();
-    if (updateError) setError("อัปเดตแผนดูไม่สำเร็จ: " + updateError.message);
-    else {
-      setShows(current => current.map(item => item.id === show.id ? data : item));
-      await supabase.from("series_tracker_activity").insert({ user_id: "00000000-0000-0000-0000-000000000001", show_id: show.id, show_title: show.title, episode_delta: amount });
-      setNotice(finished ? "ดูเรื่องนี้จบแล้ว! เลื่อนไปเรื่องถัดไปให้แล้ว" : "บันทึกแผนสำเร็จ · เรื่องถัดไปพร้อมแล้ว");
-      setTimeout(() => setNotice(""), 2800);
-    }
-  }
-
   if (!supabase) return <main className="config-screen"><div className="config-card"><div className="brand-mark"><span>✦</span> SERIDAYS</div><h1>ยังไม่ได้เชื่อมต่อฐานข้อมูล</h1><p>ตั้งค่า NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ใน Vercel ก่อนเริ่มใช้งาน</p></div></main>;
   return <main className="app-shell">
     <aside className="sidebar">
@@ -212,42 +195,39 @@ export default function Page() {
     <section className="main-area">
       <header className="topbar"><div className="breadcrumb">MY LIBRARY <span>/</span> {active === "all" ? "OVERVIEW" : STATUS[active]?.label?.toUpperCase()}</div><div className="topbar-right"><span className="sync-state"><i /> SYNCED</span><button className="button primary add-top" onClick={openAdd}>＋ เพิ่มซีรีส์</button></div></header>
       <div className="content-wrap">
-        <section className="welcome-row"><div><span className="eyebrow">YOUR WATCH JOURNAL</span><h1>เรื่องราวของคุณ <em>วันนี้</em></h1><p>ทุกตอนที่ดู คืออีกหนึ่งช่วงเวลาที่ได้ใช้ไปกับเรื่องโปรด</p></div><div className="date-pill">{new Date().toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}</div></section>
-        <section className="hero-banner"><div className="hero-glow" /><div className="hero-text"><span className="eyebrow">KEEP YOUR STORY GOING</span><h2>One more episode.<br /><em>One more memory.</em></h2><p>{recommendation ? "เรื่องที่น่าดูต่อ: " + recommendation.title + " · ค้าง " + backlog(recommendation) + " ตอน" : "เพิ่มซีรีส์เรื่องแรก แล้วเริ่มเก็บทุกโมเมนต์การรับชมของคุณ"}</p><button className="button light" onClick={recommendation ? () => openEdit(recommendation) : openAdd}>{recommendation ? "ดูรายละเอียดเรื่องนี้ ↗" : "เพิ่มซีรีส์เรื่องแรก ↗"}</button></div><div className="hero-art"><div className="poster-stack"><div className="poster poster-back">✦</div><div className="poster poster-front"><span>SCENE<br />NO. 01</span><b>STORY<br />CONTINUES</b><i>✧</i></div></div><div className="hero-orbit" /></div><div className="hero-index">S / 01</div></section>
-        <section className="watch-plan-section">
-          <div className="plan-heading"><div><span className="eyebrow">YOUR NEXT WATCH</span><h2>แผนดูของฉัน <span>{watchPlan.length} เรื่องในคิว</span></h2><p>ดูตามลำดับการ์ด ไม่ต้องยึดติดกับวันหรือเวลา</p></div><span className="plan-badge">✦ WATCH FLOW</span></div>
-          {!dataReady ? <div className="plan-loading">กำลังเตรียมแผนดูของคุณ…</div> : watchPlan.length === 0 ? <div className="plan-empty"><div className="plan-empty-icon">✧</div><div><strong>ยังไม่มีเรื่องในแผนดู</strong><p>เพิ่มเรื่องที่กำลังดูหรืออยากดู แล้วเลือกจำนวนตอนต่อรอบได้เลย</p></div><button className="button primary" onClick={openAdd}>＋ เพิ่มซีรีส์</button></div> : <div className="plan-layout">
-            <article className="plan-feature-card">
-              <div className="plan-feature-poster">{watchPlan[0].poster_url ? <img src={watchPlan[0].poster_url} alt={watchPlan[0].title} /> : <div className="poster-placeholder"><span>✦</span><b>{watchPlan[0].title.slice(0,2).toUpperCase()}</b><small>SERIES</small></div>}<span className="plan-step">NOW PLAYING · 01</span></div>
-              <div className="plan-feature-info">
-                <div className="plan-current-label"><i /> เรื่องที่ต้องดูตอนนี้ <span className="plan-stars">{"★".repeat(watchPlan[0].rating || 3)}{"☆".repeat(5 - (watchPlan[0].rating || 3))}</span></div>
-                <h3>{watchPlan[0].title}</h3>{watchPlan[0].original_title && <p className="plan-original">{watchPlan[0].original_title}</p>}
-                <div className="plan-episode-target"><span>เป้าหมายรอบนี้</span><strong>{planCount(watchPlan[0])} <small>ตอน</small></strong><em>EP {watchPlan[0].watched_episodes + 1}–{watchPlan[0].watched_episodes + planCount(watchPlan[0])}</em></div>
-                <div className="plan-remaining">ดูแล้ว {watchPlan[0].watched_episodes} ตอน {watchPlan[0].total_episodes != null ? `จากทั้งหมด ${watchPlan[0].total_episodes} ตอน` : watchPlan[0].released_episodes != null ? `จากที่ออกแล้ว ${watchPlan[0].released_episodes} ตอน` : "· ยังไม่ระบุจำนวนตอนทั้งหมด"}</div>
-                <div className="plan-reason">✦ {planReason(watchPlan[0])} · คะแนนจัดคิว {Math.round(planPriority(watchPlan[0]))}/100</div><div className="plan-time-estimate">ใช้เวลาประมาณ {planCount(watchPlan[0]) * (Number(watchPlan[0].episode_duration_minutes) || 45)} นาที · ตอนละ {Number(watchPlan[0].episode_duration_minutes) || 45} นาที</div>
-                <div className="plan-feature-actions"><button className="button primary plan-done" onClick={() => completePlan(watchPlan[0])}>✓ ดูครบแล้ว · บันทึก +{planCount(watchPlan[0])} ตอน</button><button className="plan-edit" onClick={() => openEdit(watchPlan[0])}>ปรับแผน</button></div>
-              </div>
-            </article>
-            <aside className="plan-queue"><div className="queue-title"><strong>เรื่องถัดไป</strong><span>UP NEXT</span></div>
-              {watchPlan.slice(1,4).map((show,index) => <div className="queue-card" key={show.id}><span className="queue-number">0{index+2}</span><div className="queue-poster">{show.poster_url ? <img src={show.poster_url} alt="" /> : <b>{show.title.slice(0,1)}</b>}</div><div className="queue-copy"><strong>{show.title}</strong><span>{"★".repeat(show.rating || 3)} · {planCount(show)} ตอน · {planCount(show) * (Number(show.episode_duration_minutes) || 45)} นาที</span><small className="queue-reason">{planReason(show)}</small></div><button onClick={() => openEdit(show)} aria-label={"ปรับแผน " + show.title}>···</button></div>)}
-              {watchPlan.length > 4 && <div className="queue-more">และอีก {watchPlan.length - 4} เรื่องในคิว</div>}
-              {watchPlan.length === 1 && <div className="queue-empty">ไม่มีเรื่องถัดไปแล้ว<br />เพิ่มเรื่องใหม่เข้าคิวได้เลย</div>}
-            </aside>
-          </div>}
+        <section className="welcome-row"><div><span className="eyebrow">YOUR WATCH JOURNAL</span><h1>วันนี้ดูอะไรดี <em>?</em></h1><p>การ์ดซีรีส์ทั้งหมดของคุณ พร้อมสถานะตอนล่าสุดและกำหนดออกอากาศ</p></div><div className="date-pill">{new Date().toLocaleDateString("th-TH", { weekday:"long", day: "numeric", month: "long", year: "numeric" })}</div></section>
+        <section className="today-dashboard">
+          <div className="today-summary">
+            <span className="eyebrow">TODAY AT A GLANCE</span>
+            <h2>สรุปการดูวันนี้</h2>
+            <div className="today-kpis">
+              <div><strong>{todayEpisodeCount}</strong><span>ตอนที่ดูวันนี้</span></div>
+              <div><strong>{airingToday.length}</strong><span>เรื่องที่มีตอนใหม่วันนี้</span></div>
+              <div><strong>{todayWatchedTitles.length}</strong><span>เรื่องที่ได้ดูวันนี้</span></div>
+            </div>
+            <p className="today-watched-note">{todayWatchedTitles.length ? "วันนี้คุณดู: " + todayWatchedTitles.join(" · ") : "ยังไม่มีประวัติการดูวันนี้ กดปุ่ม + บนการ์ดเมื่อดูจบแต่ละตอน"}</p>
+          </div>
+          <div className="today-notices">
+            <div className="today-notice-heading"><div><span className="eyebrow">NEW EPISODES</span><h3>วันนี้มีเรื่องไหนมา</h3></div><span className="today-date-tag">{todayName}</span></div>
+            {!dataReady ? <p className="today-empty">กำลังตรวจสอบตารางออกอากาศ…</p> : airingToday.length ? airingToday.map(show => <div className="today-release-row" key={show.id}>
+              <div className="today-release-poster">{show.poster_url ? <img src={show.poster_url} alt="" /> : <b>{show.title.slice(0,1)}</b>}</div>
+              <div className="today-release-copy"><strong>{show.title}</strong><span>{show.next_episode_date === todayKey ? "กำหนดตอนใหม่วันนี้" : releaseDayLabel(show.release_day)}</span></div>
+              <b className="today-release-count">+{Math.max(1, Number(show.episodes_per_release) || 1)} ตอน</b>
+            </div>) : <div className="today-empty">ไม่มีซีรีส์ที่กำหนดให้ออกวันนี้ ✧<small>เพิ่มวันออกอากาศหรือวันตอนถัดไปในรายละเอียดซีรีส์ได้</small></div>}
+          </div>
         </section>
-        <section className="stats-grid">
+        <section className="stats-grid compact-stats">
           <div className="stat-card"><span className="stat-icon lavender">▣</span><span className="stat-label">ซีรีส์ทั้งหมด</span><strong>{counts.all}</strong><small>เรื่องในคลังของคุณ</small></div>
-          <div className="stat-card"><span className="stat-icon blue">▶</span><span className="stat-label">กำลังติดตาม</span><strong>{counts.watching}</strong><small>เรื่องที่กำลังดูอยู่</small></div>
-          <div className="stat-card"><span className="stat-icon peach">◷</span><span className="stat-label">ตอนที่ดูแล้ว</span><strong>{totals.watched}</strong><small>ตอนที่บันทึกไว้</small></div>
-          <div className="stat-card"><span className="stat-icon mint">≋</span><span className="stat-label">ตอนที่ค้างดู</span><strong>{totals.backlog}</strong><small>จากเรื่องที่กำลังดู</small></div>
+          <div className="stat-card"><span className="stat-icon blue">▶</span><span className="stat-label">กำลังดู</span><strong>{counts.watching}</strong><small>เรื่องที่ติดตามอยู่</small></div>
+          <div className="stat-card"><span className="stat-icon peach">◷</span><span className="stat-label">ดูวันนี้</span><strong>{todayEpisodeCount}</strong><small>ตอนที่บันทึกในวันนี้</small></div>
+          <div className="stat-card"><span className="stat-icon mint">≋</span><span className="stat-label">ตอนค้างดู</span><strong>{totals.backlog}</strong><small>จากเรื่องที่กำลังดู</small></div>
         </section>
-        <InsightsHub shows={shows} onRefresh={loadShows} />
-        <section className="section-heading"><div><span className="eyebrow">YOUR COLLECTION</span><h2>{active === "all" ? "ซีรีส์ในลิสต์" : STATUS[active]?.label || "ซีรีส์ในลิสต์"} <span>{filtered.length}</span></h2></div><div className="search-box"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="ค้นหาชื่อเรื่อง…" /></div></section>
+        <section className="section-heading"><div><span className="eyebrow">YOUR SERIES CARDS</span><h2>{active === "all" ? "การ์ดซีรีส์ของฉัน" : STATUS[active]?.label || "การ์ดซีรีส์ของฉัน"} <span>{filtered.length}</span></h2></div><div className="search-box"><span>⌕</span><input value={query} onChange={e => setQuery(e.target.value)} placeholder="ค้นหาชื่อเรื่อง…" /></div></section>
         <div className="filter-row">{NAV.map(item => <button key={item.id} className={active === item.id ? "filter-chip selected" : "filter-chip"} onClick={() => setActive(item.id)}>{item.label}</button>)}</div>
         {error && <div className="notice error inline-notice">{error}<button onClick={() => setError("")}>×</button></div>}
         {notice && <div className="notice success inline-notice">{notice}</div>}
         {!dataReady ? <div className="empty-state"><span className="loader" /><p>กำลังซิงก์ข้อมูลของคุณ…</p></div> :
-          filtered.length === 0 ? <div className="empty-state"><div className="empty-illustration">✧</div><h3>{query ? "ไม่พบเรื่องที่ค้นหา" : "พื้นที่นี้ยังว่างอยู่"}</h3><p>{query ? "ลองค้นหาด้วยชื่อเรื่องอื่น" : "เพิ่มซีรีส์ที่กำลังดูหรืออยากดู แล้วเราจะช่วยจัดการตอนที่เหลือให้"}</p>{!query && <button className="button primary" onClick={openAdd}>＋ เพิ่มซีรีส์</button>}</div> :
+          filtered.length === 0 ? <div className="empty-state"><div className="empty-illustration">✧</div><h3>{query ? "ไม่พบเรื่องที่ค้นหา" : "พื้นที่นี้ยังว่างอยู่"}</h3><p>{query ? "ลองค้นหาด้วยชื่อเรื่องอื่น" : "เพิ่มซีรีส์ที่กำลังดูหรืออยากดู แล้วการ์ดของเรื่องนั้นจะอยู่ที่นี่"}</p>{!query && <button className="button primary" onClick={openAdd}>＋ เพิ่มซีรีส์</button>}</div> :
           <div className="series-grid">{filtered.map(show => {
             const pct = progress(show);
             return <article className="series-card" key={show.id}>
@@ -281,8 +261,7 @@ export default function Page() {
         <label>ประเทศ<input value={form.country || ""} onChange={e => setForm({ ...form, country: e.target.value })} placeholder="จีน, เกาหลี…" /></label>
         <label>ซีซัน<input type="number" min="1" value={form.season_number} onChange={e => setForm({ ...form, season_number: e.target.value })} /></label>
         <label>ดูแล้ว<input type="number" min="0" value={form.watched_episodes} onChange={e => setForm({ ...form, watched_episodes: e.target.value })} /></label>
-        <label className="wide rating-field">ความอยากดู <span className="field-hint">ให้คะแนนเพื่อช่วยจัดลำดับและจำนวนตอน</span><div className="rating-picker" role="group" aria-label="คะแนนความอยากดู">{[1,2,3,4,5].map(star => <button type="button" key={star} className={star <= (Number(form.rating) || 3) ? "rating-star active" : "rating-star"} onClick={() => setForm({ ...form, rating: star })} aria-label={star + " ดาว"}>★</button>)}<b>{form.rating || 3}/5</b></div></label>
-         <label>จำนวนตอนต่อรอบ<input type="number" min="1" max="30" value={form.plan_episodes || 3} onChange={e => setForm({ ...form, plan_episodes: e.target.value })} /><small className="field-hint">ใช้เป็นค่าตั้งต้น ระบบจะปรับตามดาวและตอนค้าง (ไม่เกิน 3 ตอนต่อรอบ)</small></label>
+        <label className="wide rating-field">ความอยากดู <span className="field-hint">ให้คะแนนความชอบส่วนตัว</span><div className="rating-picker" role="group" aria-label="คะแนนความอยากดู">{[1,2,3,4,5].map(star => <button type="button" key={star} className={star <= (Number(form.rating) || 3) ? "rating-star active" : "rating-star"} onClick={() => setForm({ ...form, rating: star })} aria-label={star + " ดาว"}>★</button>)}<b>{form.rating || 3}/5</b></div></label>
         <label>ปล่อยครั้งละกี่ตอน<input type="number" min="1" max="10" value={form.episodes_per_release || 1} onChange={e => setForm({ ...form, episodes_per_release: e.target.value })} /><small className="field-hint">เช่น 2 ตอนต่อวันออกอากาศ</small></label>
         <label>ความยาวต่อตอน (นาที)<input type="number" min="5" max="240" step="1" value={form.episode_duration_minutes || 45} onChange={e => setForm({ ...form, episode_duration_minutes: e.target.value })} /><small className="field-hint">กำหนดแยกแต่ละเรื่อง เช่น อนิเมะ 24 นาที</small></label>
         <label>ออกอากาศแล้ว<input type="number" min="0" value={form.released_episodes} onChange={e => setForm({ ...form, released_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
