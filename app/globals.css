@@ -300,3 +300,29 @@ html,body{background:#f4f1ed;color:#292431}
 .queue-reason{display:block;font-size:9px!important;line-height:1.45;color:#887b8e!important;white-space:normal!important;overflow:visible!important}
 .plan-feature-info .plan-reason{font-size:10px;line-height:1.6}
 @media(max-width:700px){.plan-time-estimate{font-size:8px;padding:6px 8px}.queue-reason{font-size:8px!important}}
+
+
+/* SeriDays daily dashboard and simple series-card home */
+.today-dashboard{display:grid;grid-template-columns:1fr 1.05fr;gap:16px;margin:0 0 18px}
+.today-summary,.today-notices{background:#fffdfa;border:1px solid #eae3e9;border-radius:17px;padding:21px 23px;box-shadow:0 5px 18px rgba(55,40,58,.025);min-width:0}
+.today-summary h2,.today-notice-heading h3{font:700 19px 'Noto Sans Thai',sans-serif;color:#332b38;margin:6px 0 15px}
+.today-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.today-kpis>div{background:#f7f3f7;border:1px solid #eee6ef;border-radius:12px;padding:12px 13px;display:flex;flex-direction:column;gap:4px}
+.today-kpis strong{font:700 27px Manrope,sans-serif;color:#74577e}
+.today-kpis span{font-size:10px;color:#8c828e}
+.today-watched-note{font-size:11px;color:#897e8c;margin:13px 0 0;line-height:1.6}
+.today-notice-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
+.today-notice-heading h3{margin-bottom:7px}
+.today-date-tag{background:#eee6f0;color:#74577e;border-radius:20px;padding:6px 11px;font-size:10px;white-space:nowrap}
+.today-release-row{display:flex;align-items:center;gap:11px;padding:9px 0;border-top:1px solid #f0eaf0}
+.today-release-poster{width:37px;height:48px;flex:none;border-radius:7px;overflow:hidden;background:#eee6f0;color:#74577e;display:grid;place-items:center;font-weight:700}
+.today-release-poster img{width:100%;height:100%;object-fit:cover}
+.today-release-copy{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.today-release-copy strong{font-size:12px;color:#403445;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.today-release-copy span{font-size:10px;color:#948895}
+.today-release-count{font:700 11px Manrope,sans-serif;color:#795b88;white-space:nowrap}
+.today-empty{font-size:11px;color:#9a909d;padding:12px 0 4px;line-height:1.7}
+.today-empty small{display:block;font-size:10px;color:#b0a7b2;margin-top:4px}
+.compact-stats{margin:18px 0 32px}
+@media(max-width:850px){.today-dashboard{grid-template-columns:1fr}}
+@media(max-width:600px){.today-summary,.today-notices{padding:16px;border-radius:14px}.today-kpis{gap:6px}.today-kpis>div{padding:10px 8px}.today-kpis strong{font-size:23px}.today-kpis span{font-size:9px}.compact-stats{margin:14px 0 26px}}
