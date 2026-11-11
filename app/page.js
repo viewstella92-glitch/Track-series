@@ -175,7 +175,13 @@ export default function Page() {
     const nextStatus = show.total_episodes !== null && next === show.total_episodes && show.status === "watching" ? "completed" : show.status === "completed" && next < show.total_episodes ? "watching" : show.status;
     const { data, error: updateError } = await supabase.from("series_tracker_shows").update({ watched_episodes: next, status: nextStatus, updated_at: new Date().toISOString() }).eq("id", show.id).select().single();
     if (updateError) setError("อัปเดตตอนไม่สำเร็จ: " + updateError.message);
-    else { setShows(current => current.map(item => item.id === show.id ? data : item)); if (delta > 0) await supabase.from("series_tracker_activity").insert({ user_id: "00000000-0000-0000-0000-000000000001", show_id: show.id, show_title: show.title, episode_delta: delta }); }
+    else {
+      setShows(current => current.map(item => item.id === show.id ? data : item));
+      if (delta > 0) {
+        const { data: activity } = await supabase.from("series_tracker_activity").insert({ user_id: "00000000-0000-0000-0000-000000000001", show_id: show.id, show_title: show.title, episode_delta: delta }).select("id, show_id, show_title, episode_delta, created_at").single();
+        if (activity) setTodayActivity(current => [activity, ...current]);
+      }
+    }
   }
 
   async function quickStatus(show, status) {
