@@ -46,14 +46,32 @@ const planCount = show => {
   const releaseBatch = isAiring(show) ? Math.max(1, Number(show.episodes_per_release) || 1) : 1;
   return Math.min(preferredLimit, planAvailable(show), Math.max(base + backlogBonus + airingBonus, releaseBatch));
 };
+const daysUntilRelease = show => {
+  if (!show.next_episode_date) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const next = new Date(show.next_episode_date + "T00:00:00"); next.setHours(0,0,0,0);
+  return Math.round((next.getTime() - today.getTime()) / 86400000);
+};
 const planPriority = show => {
   const stars = Math.min(5, Math.max(1, Number(show.rating) || 3));
-  const backlogPressure = Math.min(3, backlog(show) / 8);
-  const airingBoost = isAiring(show) ? 2.5 : 0;
-  const nextDate = show.next_episode_date ? new Date(show.next_episode_date + "T00:00:00") : null;
-  const daysToNext = nextDate ? Math.ceil((nextDate.getTime() - new Date().setHours(0,0,0,0)) / 86400000) : null;
-  const soonBoost = daysToNext !== null && daysToNext >= 0 && daysToNext <= 3 ? 2 : 0;
-  return stars * 1.5 + backlogPressure + airingBoost + soonBoost;
+  const waiting = backlog(show);
+  const days = daysUntilRelease(show);
+  const ratingScore = stars * 12;
+  const backlogScore = Math.min(18, waiting * 1.2);
+  const statusScore = show.status === "watching" ? 6 : 2;
+  const releaseUrgency = days === null ? 0 : days < 0 ? 5 : days === 0 ? 14 : days <= 2 ? 10 : days <= 5 ? 5 : 0;
+  const batchScore = isAiring(show) ? Math.min(4, (Number(show.episodes_per_release) || 1) * 1.2) : 0;
+  return ratingScore + backlogScore + statusScore + releaseUrgency + batchScore;
+};
+const planReason = show => {
+  const days = daysUntilRelease(show);
+  if (days === 0) return "มีตอนใหม่ออกวันนี้ · ควรจัดเวลาให้เรื่องนี้";
+  if (days !== null && days > 0 && days <= 2) return "ใกล้วันออกตอนใหม่ · เตรียมเคลียร์ตอนค้าง";
+  if (Number(show.rating) >= 5) return "คะแนนความอยากดูสูง · ให้ความสำคัญกับเรื่องโปรด";
+  if (backlog(show) >= 8) return "มีตอนค้างสะสม " + backlog(show) + " ตอน · ควรทยอยตาม";
+  if (show.status === "planned") return "อยู่ในรายการที่อยากดู · เริ่มจากเรื่องนี้ได้";
+  if (days !== null && days < 0) return "มีวันออกอากาศที่ผ่านแล้ว · ตรวจสอบตอนใหม่";
+  return "จัดลำดับจากคะแนน ความค้าง และตารางออกอากาศ";
 };
 const wasPlannedRecently = show => show.last_planned_at && Date.now() - new Date(show.last_planned_at).getTime() < 6 * 60 * 60 * 1000;
 
@@ -102,8 +120,8 @@ export default function Page() {
   }).sort((a,b) => backlog(b) - backlog(a)), [shows, active, query]);
   const recommendation = shows.filter(s => s.status === "watching").sort((a,b) => backlog(b) - backlog(a))[0];
   const watchPlan = useMemo(() => shows.filter(show => ["watching", "planned"].includes(show.status) && planAvailable(show) > 0).sort((a,b) =>
-    Number(wasPlannedRecently(a)) - Number(wasPlannedRecently(b)) ||
-    planPriority(b) - planPriority(a) ||
+    (planPriority(b) - (wasPlannedRecently(b) ? 7 : 0)) -
+    (planPriority(a) - (wasPlannedRecently(a) ? 7 : 0)) ||
     (a.plan_order ?? 0) - (b.plan_order ?? 0) ||
     new Date(a.created_at || 0) - new Date(b.created_at || 0)
   ), [shows]);
@@ -206,12 +224,12 @@ export default function Page() {
                 <h3>{watchPlan[0].title}</h3>{watchPlan[0].original_title && <p className="plan-original">{watchPlan[0].original_title}</p>}
                 <div className="plan-episode-target"><span>เป้าหมายรอบนี้</span><strong>{planCount(watchPlan[0])} <small>ตอน</small></strong><em>EP {watchPlan[0].watched_episodes + 1}–{watchPlan[0].watched_episodes + planCount(watchPlan[0])}</em></div>
                 <div className="plan-remaining">ดูแล้ว {watchPlan[0].watched_episodes} ตอน {watchPlan[0].total_episodes != null ? `จากทั้งหมด ${watchPlan[0].total_episodes} ตอน` : watchPlan[0].released_episodes != null ? `จากที่ออกแล้ว ${watchPlan[0].released_episodes} ตอน` : "· ยังไม่ระบุจำนวนตอนทั้งหมด"}</div>
-                <div className="plan-reason">{isAiring(watchPlan[0]) ? "◉ กำลังออนแอร์ · เร่งรักษาคิวไม่ให้ตอนค้าง" : "✦ จัดคิวตามคะแนนความอยากดูและตอนที่ค้าง"}</div>
+                <div className="plan-reason">✦ {planReason(watchPlan[0])} · คะแนนจัดคิว {Math.round(planPriority(watchPlan[0]))}/100</div><div className="plan-time-estimate">ใช้เวลาประมาณ {planCount(watchPlan[0]) * (Number(watchPlan[0].episode_duration_minutes) || 45)} นาที · ตอนละ {Number(watchPlan[0].episode_duration_minutes) || 45} นาที</div>
                 <div className="plan-feature-actions"><button className="button primary plan-done" onClick={() => completePlan(watchPlan[0])}>✓ ดูครบแล้ว · บันทึก +{planCount(watchPlan[0])} ตอน</button><button className="plan-edit" onClick={() => openEdit(watchPlan[0])}>ปรับแผน</button></div>
               </div>
             </article>
             <aside className="plan-queue"><div className="queue-title"><strong>เรื่องถัดไป</strong><span>UP NEXT</span></div>
-              {watchPlan.slice(1,4).map((show,index) => <div className="queue-card" key={show.id}><span className="queue-number">0{index+2}</span><div className="queue-poster">{show.poster_url ? <img src={show.poster_url} alt="" /> : <b>{show.title.slice(0,1)}</b>}</div><div className="queue-copy"><strong>{show.title}</strong><span>{"★".repeat(show.rating || 3)} · แนะนำ {planCount(show)} ตอน</span></div><button onClick={() => openEdit(show)} aria-label={"ปรับแผน " + show.title}>···</button></div>)}
+              {watchPlan.slice(1,4).map((show,index) => <div className="queue-card" key={show.id}><span className="queue-number">0{index+2}</span><div className="queue-poster">{show.poster_url ? <img src={show.poster_url} alt="" /> : <b>{show.title.slice(0,1)}</b>}</div><div className="queue-copy"><strong>{show.title}</strong><span>{"★".repeat(show.rating || 3)} · {planCount(show)} ตอน · {planCount(show) * (Number(show.episode_duration_minutes) || 45)} นาที</span><small className="queue-reason">{planReason(show)}</small></div><button onClick={() => openEdit(show)} aria-label={"ปรับแผน " + show.title}>···</button></div>)}
               {watchPlan.length > 4 && <div className="queue-more">และอีก {watchPlan.length - 4} เรื่องในคิว</div>}
               {watchPlan.length === 1 && <div className="queue-empty">ไม่มีเรื่องถัดไปแล้ว<br />เพิ่มเรื่องใหม่เข้าคิวได้เลย</div>}
             </aside>
