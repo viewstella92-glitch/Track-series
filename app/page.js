@@ -23,7 +23,7 @@ const NAV = [
 ];
 const EMPTY = {
   title: "", original_title: "", poster_url: "", genre: "", country: "",
-  season_number: 1, watched_episodes: 0, released_episodes: "", plan_episodes: 3, plan_order: 0,
+  season_number: 1, watched_episodes: 0, released_episodes: "", rating: 3, plan_episodes: 3, plan_order: 0, last_planned_at: null,
   total_episodes: "", status: "watching", release_day: "",
   next_episode_date: "", notes: "",
 };
@@ -32,7 +32,24 @@ const backlog = show => Math.max(0, (show.released_episodes ?? show.total_episod
 const progress = show => show.total_episodes == null ? null : Math.min(100, Math.round(show.watched_episodes / Math.max(1, show.total_episodes) * 100));
 const formatDate = value => value ? new Date(value + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "ยังไม่กำหนด";
 const planAvailable = show => show.released_episodes != null ? Math.max(0, show.released_episodes - show.watched_episodes) : show.total_episodes != null ? Math.max(0, show.total_episodes - show.watched_episodes) : Math.max(1, show.plan_episodes || 3);
-const planCount = show => Math.min(Math.max(1, show.plan_episodes || 3), planAvailable(show));
+const isAiring = show => show.status === "watching" && (!!show.release_day || !!show.next_episode_date);
+const planCount = show => {
+  const stars = Math.min(5, Math.max(1, Number(show.rating) || 3));
+  const base = stars >= 5 ? 2 : stars >= 3 ? 2 : 1;
+  const backlogBonus = backlog(show) >= 10 ? 1 : 0;
+  const airingBonus = isAiring(show) ? 1 : 0;
+  return Math.min(3, planAvailable(show), base + backlogBonus + airingBonus);
+};
+const planPriority = show => {
+  const stars = Math.min(5, Math.max(1, Number(show.rating) || 3));
+  const backlogPressure = Math.min(3, backlog(show) / 8);
+  const airingBoost = isAiring(show) ? 2.5 : 0;
+  const nextDate = show.next_episode_date ? new Date(show.next_episode_date + "T00:00:00") : null;
+  const daysToNext = nextDate ? Math.ceil((nextDate.getTime() - new Date().setHours(0,0,0,0)) / 86400000) : null;
+  const soonBoost = daysToNext !== null && daysToNext >= 0 && daysToNext <= 3 ? 2 : 0;
+  return stars * 1.5 + backlogPressure + airingBoost + soonBoost;
+};
+const wasPlannedRecently = show => show.last_planned_at && Date.now() - new Date(show.last_planned_at).getTime() < 6 * 60 * 60 * 1000;
 
 export default function Page() {
   const [shows, setShows] = useState([]);
@@ -78,10 +95,15 @@ export default function Page() {
     return inTab && text.includes(query.toLowerCase());
   }).sort((a,b) => backlog(b) - backlog(a)), [shows, active, query]);
   const recommendation = shows.filter(s => s.status === "watching").sort((a,b) => backlog(b) - backlog(a))[0];
-  const watchPlan = useMemo(() => shows.filter(show => ["watching", "planned"].includes(show.status) && planAvailable(show) > 0).sort((a,b) => (a.plan_order ?? 0) - (b.plan_order ?? 0) || new Date(a.created_at || 0) - new Date(b.created_at || 0)), [shows]);
+  const watchPlan = useMemo(() => shows.filter(show => ["watching", "planned"].includes(show.status) && planAvailable(show) > 0).sort((a,b) =>
+    Number(wasPlannedRecently(a)) - Number(wasPlannedRecently(b)) ||
+    planPriority(b) - planPriority(a) ||
+    (a.plan_order ?? 0) - (b.plan_order ?? 0) ||
+    new Date(a.created_at || 0) - new Date(b.created_at || 0)
+  ), [shows]);
 
   function openAdd() { setForm({ ...EMPTY }); setError(""); setModal(true); }
-  function openEdit(show) { setForm({ ...EMPTY, ...show, plan_episodes: show.plan_episodes || 3, released_episodes: show.released_episodes ?? "", total_episodes: show.total_episodes ?? "", next_episode_date: show.next_episode_date || "" }); setError(""); setModal(true); }
+  function openEdit(show) { setForm({ ...EMPTY, ...show, plan_episodes: show.plan_episodes || 3, rating: show.rating || 3, released_episodes: show.released_episodes ?? "", total_episodes: show.total_episodes ?? "", next_episode_date: show.next_episode_date || "" }); setError(""); setModal(true); }
   function closeModal() { if (!saving) setModal(false); }
 
   async function saveShow(event) {
@@ -97,7 +119,7 @@ export default function Page() {
       poster_url: form.poster_url?.trim() || null, genre: form.genre?.trim() || null, country: form.country?.trim() || null,
       season_number: Math.max(1, Number(form.season_number) || 1), watched_episodes: watched,
       released_episodes: released, total_episodes: total, status: form.status,
-      plan_episodes: Math.min(30, Math.max(1, Number(form.plan_episodes) || 3)), plan_order: Number(form.plan_order) || 0,
+      plan_episodes: Math.min(30, Math.max(1, Number(form.plan_episodes) || 3)), rating: Math.min(5, Math.max(1, Number(form.rating) || 3)), plan_order: Number(form.plan_order) || 0,
       release_day: form.release_day || null, next_episode_date: form.next_episode_date || null,
       notes: form.notes?.trim() || null, updated_at: new Date().toISOString(),
     };
@@ -143,7 +165,7 @@ export default function Page() {
     const nextOrder = Math.max(0, ...shows.map(item => Number(item.plan_order) || 0)) + 1;
     const { data, error: updateError } = await supabase.from("series_tracker_shows").update({
       watched_episodes: nextWatched, status: finished ? "completed" : "watching",
-      plan_order: nextOrder, updated_at: new Date().toISOString(),
+      plan_order: nextOrder, last_planned_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     }).eq("id", show.id).select().single();
     if (updateError) setError("อัปเดตแผนดูไม่สำเร็จ: " + updateError.message);
     else {
@@ -172,15 +194,16 @@ export default function Page() {
             <article className="plan-feature-card">
               <div className="plan-feature-poster">{watchPlan[0].poster_url ? <img src={watchPlan[0].poster_url} alt={watchPlan[0].title} /> : <div className="poster-placeholder"><span>✦</span><b>{watchPlan[0].title.slice(0,2).toUpperCase()}</b><small>SERIES</small></div>}<span className="plan-step">NOW PLAYING · 01</span></div>
               <div className="plan-feature-info">
-                <div className="plan-current-label"><i /> เรื่องที่ต้องดูตอนนี้</div>
+                <div className="plan-current-label"><i /> เรื่องที่ต้องดูตอนนี้ <span className="plan-stars">{"★".repeat(watchPlan[0].rating || 3)}{"☆".repeat(5 - (watchPlan[0].rating || 3))}</span></div>
                 <h3>{watchPlan[0].title}</h3>{watchPlan[0].original_title && <p className="plan-original">{watchPlan[0].original_title}</p>}
                 <div className="plan-episode-target"><span>เป้าหมายรอบนี้</span><strong>{planCount(watchPlan[0])} <small>ตอน</small></strong><em>EP {watchPlan[0].watched_episodes + 1}–{watchPlan[0].watched_episodes + planCount(watchPlan[0])}</em></div>
                 <div className="plan-remaining">ดูแล้ว {watchPlan[0].watched_episodes} ตอน {watchPlan[0].total_episodes != null ? `จากทั้งหมด ${watchPlan[0].total_episodes} ตอน` : watchPlan[0].released_episodes != null ? `จากที่ออกแล้ว ${watchPlan[0].released_episodes} ตอน` : "· ยังไม่ระบุจำนวนตอนทั้งหมด"}</div>
+                <div className="plan-reason">{isAiring(watchPlan[0]) ? "◉ กำลังออนแอร์ · เร่งรักษาคิวไม่ให้ตอนค้าง" : "✦ จัดคิวตามคะแนนความอยากดูและตอนที่ค้าง"}</div>
                 <div className="plan-feature-actions"><button className="button primary plan-done" onClick={() => completePlan(watchPlan[0])}>✓ ดูครบแล้ว · บันทึก +{planCount(watchPlan[0])} ตอน</button><button className="plan-edit" onClick={() => openEdit(watchPlan[0])}>ปรับแผน</button></div>
               </div>
             </article>
             <aside className="plan-queue"><div className="queue-title"><strong>เรื่องถัดไป</strong><span>UP NEXT</span></div>
-              {watchPlan.slice(1,4).map((show,index) => <div className="queue-card" key={show.id}><span className="queue-number">0{index+2}</span><div className="queue-poster">{show.poster_url ? <img src={show.poster_url} alt="" /> : <b>{show.title.slice(0,1)}</b>}</div><div className="queue-copy"><strong>{show.title}</strong><span>วางแผนดู {planCount(show)} ตอน</span></div><button onClick={() => openEdit(show)} aria-label={"ปรับแผน " + show.title}>···</button></div>)}
+              {watchPlan.slice(1,4).map((show,index) => <div className="queue-card" key={show.id}><span className="queue-number">0{index+2}</span><div className="queue-poster">{show.poster_url ? <img src={show.poster_url} alt="" /> : <b>{show.title.slice(0,1)}</b>}</div><div className="queue-copy"><strong>{show.title}</strong><span>{"★".repeat(show.rating || 3)} · แนะนำ {planCount(show)} ตอน</span></div><button onClick={() => openEdit(show)} aria-label={"ปรับแผน " + show.title}>···</button></div>)}
               {watchPlan.length > 4 && <div className="queue-more">และอีก {watchPlan.length - 4} เรื่องในคิว</div>}
               {watchPlan.length === 1 && <div className="queue-empty">ไม่มีเรื่องถัดไปแล้ว<br />เพิ่มเรื่องใหม่เข้าคิวได้เลย</div>}
             </aside>
@@ -231,7 +254,8 @@ export default function Page() {
         <label>ประเทศ<input value={form.country || ""} onChange={e => setForm({ ...form, country: e.target.value })} placeholder="จีน, เกาหลี…" /></label>
         <label>ซีซัน<input type="number" min="1" value={form.season_number} onChange={e => setForm({ ...form, season_number: e.target.value })} /></label>
         <label>ดูแล้ว<input type="number" min="0" value={form.watched_episodes} onChange={e => setForm({ ...form, watched_episodes: e.target.value })} /></label>
-        <label>จำนวนตอนต่อแผนดู<input type="number" min="1" max="30" value={form.plan_episodes || 3} onChange={e => setForm({ ...form, plan_episodes: e.target.value })} /><small className="field-hint">เช่น 3 ตอนต่อรอบ · ปรับได้ 1–30 ตอน</small></label>
+        <label className="wide rating-field">ความอยากดู <span className="field-hint">ให้คะแนนเพื่อช่วยจัดลำดับและจำนวนตอน</span><div className="rating-picker" role="group" aria-label="คะแนนความอยากดู">{[1,2,3,4,5].map(star => <button type="button" key={star} className={star <= (Number(form.rating) || 3) ? "rating-star active" : "rating-star"} onClick={() => setForm({ ...form, rating: star })} aria-label={star + " ดาว"}>★</button>)}<b>{form.rating || 3}/5</b></div></label>
+         <label>จำนวนตอนต่อรอบ<input type="number" min="1" max="30" value={form.plan_episodes || 3} onChange={e => setForm({ ...form, plan_episodes: e.target.value })} /><small className="field-hint">ใช้เป็นค่าตั้งต้น ระบบจะปรับตามดาวและตอนค้าง (ไม่เกิน 3 ตอนต่อรอบ)</small></label>
         <label>ออกอากาศแล้ว<input type="number" min="0" value={form.released_episodes} onChange={e => setForm({ ...form, released_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
         <label>จำนวนตอนทั้งหมด<input type="number" min="0" value={form.total_episodes} onChange={e => setForm({ ...form, total_episodes: e.target.value })} placeholder="ถ้าทราบ" /></label>
         <label>รูปแบบวันออกอากาศ<select value={form.release_day || ""} onChange={e => setForm({ ...form, release_day: e.target.value })}><option value="">ไม่ระบุ</option><option value="ทุกวัน">ทุกวัน</option>{["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"].map(day => <option key={day} value={day}>{day}</option>)}</select></label>
