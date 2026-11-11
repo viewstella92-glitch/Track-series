@@ -186,24 +186,25 @@ export default function Page() {
   const todayLoggedByShow = todayActivity.reduce((map, item) => { if (item.show_id) map[item.show_id] = (map[item.show_id] || 0) + Math.max(0, Number(item.episode_delta) || 0); return map; }, {});
   const todayQueueLoggedMinutes = shows.reduce((sum, show) => sum + (todayLoggedByShow[show.id] || 0) * (Number(show.episode_duration_minutes) || 45), 0);
   const dailyTasks = (() => {
-    let remainingMinutes = Math.max(0, todayBudgetMinutes - todayQueueLoggedMinutes);
-    const candidates = [...queueShows].filter(show => !show.last_planned_at || localDateKey(new Date(show.last_planned_at)) !== todayKey).sort((a,b) => planPriority(b) - planPriority(a));
-    const tasks = [];
+    const candidates = [...queueShows].filter(show => (!show.last_planned_at || localDateKey(new Date(show.last_planned_at)) !== todayKey) && backlog(show) > 0)
+      .sort((a,b) => {
+        const aProgress = todayLoggedByShow[a.id] || 0;
+        const bProgress = todayLoggedByShow[b.id] || 0;
+        if (aProgress > 0 && bProgress === 0) return -1;
+        if (bProgress > 0 && aProgress === 0) return 1;
+        return planPriority(b) - planPriority(a);
+      });
     for (const show of candidates) {
-      const waiting = backlog(show);
       const logged = todayLoggedByShow[show.id] || 0;
-      if (waiting <= 0) continue;
       const duration = Number(show.episode_duration_minutes) || 45;
-      const capacity = Math.floor(remainingMinutes / duration);
-      const remainingEpisodes = Math.max(0, waiting - logged);
-      const plannedNow = Math.min(planCount(show), remainingEpisodes, capacity);
-      const target = logged + plannedNow;
+      const otherLoggedMinutes = Math.max(0, todayQueueLoggedMinutes - logged * duration);
+      const capacityForThisShow = Math.floor(Math.max(0, todayBudgetMinutes - otherLoggedMinutes) / duration);
+      const availableEpisodesToday = backlog(show) + logged;
+      const target = Math.min(planCount(show), availableEpisodesToday, capacityForThisShow);
       if (target <= 0) continue;
-      tasks.push({ show, logged, target, duration, complete: logged >= target, reason: planReason(show) });
-      remainingMinutes -= plannedNow * duration;
-      if (remainingMinutes < 1) break;
+      return [{ show, logged, target, duration, complete: logged >= target, reason: planReason(show) }];
     }
-    return tasks;
+    return [];
   })();
   const smartArrangeQueue = async () => {
     const ranked = [...queueShows].sort((a,b) => {
