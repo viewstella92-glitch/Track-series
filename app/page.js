@@ -187,12 +187,34 @@ export default function Page() {
       if (aDone && bDone && aDone !== bDone) return aDone - bDone;
       return planPriority(b) - planPriority(a);
     })[0] || null;
+  const missionSignature = flashcardCandidate ? JSON.stringify({
+    rating: flashcardCandidate.rating,
+    plan_episodes: flashcardCandidate.plan_episodes,
+    plan_order: flashcardCandidate.plan_order,
+    status: flashcardCandidate.status,
+    released_episodes: flashcardCandidate.released_episodes,
+    total_episodes: flashcardCandidate.total_episodes,
+    release_day: flashcardCandidate.release_day,
+    next_episode_date: flashcardCandidate.next_episode_date,
+    episodes_per_release: flashcardCandidate.episodes_per_release,
+  }) : "";
   useEffect(() => {
     if (!dataReady || !flashcardCandidate) { setMissionBaseline(null); return; }
-    setMissionBaseline(current => current?.showId === flashcardCandidate.id
-      ? current
-      : { showId: flashcardCandidate.id, startWatched: flashcardCandidate.watched_episodes, target: Math.min(planCount(flashcardCandidate), backlog(flashcardCandidate)) });
-  }, [dataReady, flashcardCandidate?.id, flashcardCandidate?.watched_episodes, flashcardCandidate?.released_episodes, flashcardCandidate?.total_episodes]);
+    setMissionBaseline(current => {
+      if (current?.showId !== flashcardCandidate.id) {
+        return {
+          showId: flashcardCandidate.id,
+          signature: missionSignature,
+          startWatched: flashcardCandidate.watched_episodes,
+          target: Math.min(planCount(flashcardCandidate), backlog(flashcardCandidate)),
+        };
+      }
+      if (current.signature === missionSignature) return current;
+      const alreadyLogged = Math.max(0, flashcardCandidate.watched_episodes - current.startWatched);
+      const newlyCalculated = Math.min(planCount(flashcardCandidate), backlog(flashcardCandidate));
+      return { ...current, signature: missionSignature, target: alreadyLogged + newlyCalculated };
+    });
+  }, [dataReady, flashcardCandidate?.id, flashcardCandidate?.watched_episodes, missionSignature]);
   const flashcardTask = flashcardCandidate && missionBaseline?.showId === flashcardCandidate.id
     ? {
         show: flashcardCandidate,
