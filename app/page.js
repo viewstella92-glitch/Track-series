@@ -119,6 +119,7 @@ export default function Page() {
     if (total !== null && watched > total) { setError("จำนวนตอนที่ดูแล้วต้องไม่มากกว่าจำนวนตอนทั้งหมด"); return; }
     if (released !== null && released < watched) { setError("จำนวนตอนที่ออกอากาศแล้วต้องไม่น้อยกว่าตอนที่ดูแล้ว"); return; }
     const payload = {
+      user_id: "00000000-0000-0000-0000-000000000001",
       title: form.title.trim(), original_title: form.original_title?.trim() || null,
       poster_url: form.poster_url?.trim() || null, genre: form.genre?.trim() || null, country: form.country?.trim() || null,
       season_number: Math.max(1, Number(form.season_number) || 1), watched_episodes: watched,
