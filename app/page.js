@@ -265,6 +265,40 @@ export default function Page() {
   const airingToday = useMemo(() => shows.filter(show => show.status === "watching" && (show.next_episode_date === todayKey || parseReleaseDays(show.release_day).includes(todayName))), [shows, todayKey, todayName]);
   const todayEpisodeCount = todayActivity.reduce((sum, item) => sum + Math.max(0, Number(item.episode_delta) || 0), 0);
   const todayWatchedTitles = [...new Set(todayActivity.filter(item => Number(item.episode_delta) > 0).map(item => item.show_title))];
+  const smartNotices = useMemo(() => {
+    const items = [];
+    const activeShows = shows.filter(show => show.status === "watching");
+    const knownTotal = shows.filter(show => show.status !== "dropped" && Number(show.total_episodes) > 0);
+    const totalEpisodes = knownTotal.reduce((sum, show) => sum + Number(show.total_episodes), 0);
+    const watchedKnown = knownTotal.reduce((sum, show) => sum + Math.min(Number(show.watched_episodes) || 0, Number(show.total_episodes)), 0);
+    const overallPct = totalEpisodes ? Math.round(watchedKnown / totalEpisodes * 100) : null;
+
+    activeShows.forEach(show => {
+      const left = Math.max(0, Number(show.total_episodes) - Number(show.watched_episodes || 0));
+      if (Number(show.total_episodes) > 0 && left > 0 && left <= 3) {
+        items.push({ level: "success", icon: "✦", title: "ใกล้ดูจบแล้ว", text: show.title + " เหลืออีก " + left + " ตอนก็จะดูจบ", rank: 1 });
+      }
+      if (backlog(show) >= 10) {
+        items.push({ level: "attention", icon: "▤", title: "มีตอนค้างสะสม", text: show.title + " มีตอนรอรับชม " + backlog(show) + " ตอน", rank: 3 });
+      }
+      const days = daysUntilRelease(show);
+      if (days !== null && days >= 0 && days <= 2) {
+        items.push({ level: "info", icon: "◷", title: days === 0 ? "มีตอนใหม่ตามกำหนดวันนี้" : "ใกล้วันออกตอนใหม่", text: show.title + (days === 0 ? " มีกำหนดปล่อยตอนใหม่วันนี้" : " จะมีตอนใหม่ตามกำหนดในอีก " + days + " วัน"), rank: 2 });
+      }
+      if (Number(show.released_episodes) > Number(show.watched_episodes || 0) && isAiring(show)) {
+        const waiting = Number(show.released_episodes) - Number(show.watched_episodes || 0);
+        if (waiting > 0 && waiting < 10) items.push({ level: "info", icon: "＋", title: "มีตอนออกอากาศรออยู่", text: show.title + " มีตอนที่ออกแล้วรอรับชม " + waiting + " ตอน", rank: 4 });
+      }
+    });
+    if (overallPct !== null && overallPct >= 75 && overallPct < 100) {
+      items.push({ level: "success", icon: "↗", title: "คลังซีรีส์คืบหน้าไปมากแล้ว", text: "คุณรับชมไปแล้ว " + overallPct + "% ของจำนวนตอนทั้งหมดที่ระบุไว้", rank: 5 });
+    }
+    if (overallPct === 100 && knownTotal.length) {
+      items.push({ level: "success", icon: "🏆", title: "รับชมครบทุกตอนตามข้อมูลแล้ว", text: "Progress รวมของซีรีส์ที่ระบุจำนวนตอนครบอยู่ที่ 100%", rank: 5 });
+    }
+    return items.sort((a,b) => a.rank - b.rank).slice(0, 5);
+  }, [shows, todayKey]);
+
 
   function openAdd() { setForm({ ...EMPTY }); setError(""); setModal(true); }
   function openEdit(show) { setForm({ ...EMPTY, ...show, plan_episodes: show.plan_episodes || 3, rating: show.rating || 3, episodes_per_release: show.episodes_per_release || 1, episode_duration_minutes: show.episode_duration_minutes || 45, released_episodes: show.released_episodes ?? "", total_episodes: show.total_episodes ?? "", next_episode_date: show.next_episode_date || "" }); setError(""); setModal(true); }
@@ -376,6 +410,11 @@ export default function Page() {
               </div><div className="daily-task-actions">{!flashcardTask.complete ? <button className="daily-log-button" onClick={() => changeEpisodes(flashcardTask.show,1)} disabled={backlog(flashcardTask.show) <= 0}>＋ บันทึกดู 1 ตอน</button> : <button className="daily-complete-button" onClick={() => completeFlashcardMission(flashcardTask.show)}>✓ สำเร็จ · ใบถัดไป</button>}</div>
             </article> : <div className="daily-mission-empty"><strong>ไม่มีซีรีส์ค้างในคิวแล้ว 🎉</strong><span>เพิ่มเรื่องที่อยากดูหรือกำลังดู เพื่อให้ระบบจัดแฟลชการ์ดใบต่อไป</span></div>}
           </div>
+
+          <section className="smart-notices" aria-label="Smart notices">
+            <div className="smart-notices-heading"><div><span className="eyebrow">SMART INSIGHTS</span><h2>แจ้งเตือนอัจฉริยะ <span>{smartNotices.length}</span></h2><p>วิเคราะห์จาก Progress จำนวนตอน และวันออกอากาศที่คุณบันทึกไว้</p></div></div>
+            {smartNotices.length ? <div className="smart-notices-list">{smartNotices.map((item,index) => <article className={"smart-notice " + item.level} key={item.title + item.text}><span className="smart-notice-icon">{item.icon}</span><div><strong>{item.title}</strong><p>{item.text}</p></div></article>)}</div> : <div className="smart-notices-empty">ตอนนี้ยังไม่มีเรื่องที่ต้องแจ้งเตือนเป็นพิเศษ ✧<small>ระบบจะคอยตรวจสอบเมื่อ Progress หรือข้อมูลวันออกอากาศเปลี่ยนแปลง</small></div>}
+          </section>
           <div className="flashcard-queue-heading backlog-queue-heading"><div><span className="eyebrow">YOUR BACKLOG</span><h2>คิวซีรีส์ทั้งหมด <span>{queueShows.length} เรื่อง</span></h2><p>ระบบจะเลือกเรื่องจากคิวนี้มาสร้างแฟลชการ์ดภารกิจถัดไป</p></div><button className="button ghost" onClick={smartArrangeQueue} disabled={queueShows.length < 2}>จัดลำดับคิว</button></div>
           <div className="flashcard-queue-stats"><div><small>ตอนที่ค้างทั้งหมด</small><strong>{queueBacklog.toLocaleString("th-TH")} <i>ตอน</i></strong></div><div><small>เวลาที่ต้องใช้โดยประมาณ</small><strong>{Math.floor(queueMinutes / 60)} <i>ชม.</i> {queueMinutes % 60} <i>นาที</i></strong></div><div><small>เรื่องที่อยู่ในคิว</small><strong>{queueShows.length} <i>เรื่อง</i></strong></div></div>
           {queueShows.length ? <div className="flashcard-queue-grid">{queueShows.map((show,index) => { const waiting = backlog(show); const duration = Number(show.episode_duration_minutes) || 45; const target = Math.min(waiting, Math.max(1, Number(show.plan_episodes) || 3)); return <article className="flashcard-queue-card" key={show.id}><div className="flashcard-queue-poster">{show.poster_url ? <img src={show.poster_url} alt={show.title} /> : <div className="poster-placeholder"><b>{show.title.slice(0,2).toUpperCase()}</b><small>SERIES</small></div>}<span>#{index + 1}</span></div><div className="flashcard-queue-body"><div className="flashcard-queue-top"><span className={"status-tag " + STATUS[show.status]?.tone}>{STATUS[show.status]?.label}</span><button className="more-button" onClick={() => openEdit(show)} aria-label={"แก้ไข " + show.title}>···</button></div><h3>{show.title}</h3><div className="flashcard-stars">{"★".repeat(Number(show.rating) || 3)}{"☆".repeat(5 - (Number(show.rating) || 3))}</div><div className="flashcard-queue-progress"><span>ดูแล้ว {show.watched_episodes} ตอน</span><b>{waiting} ตอนค้าง</b></div><div className="flashcard-queue-track"><i style={{width:(show.total_episodes ? Math.min(100, show.watched_episodes / Math.max(1,show.total_episodes)*100) : 0) + "%"}} /></div><div className="flashcard-target"><div><small>เป้าหมายรอบถัดไป</small><strong>{target} ตอน · ประมาณ {target * duration} นาที</strong></div><button onClick={() => openEdit(show)}>ปรับแผน</button></div><div className="flashcard-queue-actions"><button onClick={() => moveQueueItem(show,-1)} disabled={index===0} aria-label="เลื่อนขึ้น">↑</button><button onClick={() => moveQueueItem(show,1)} disabled={index===queueShows.length-1} aria-label="เลื่อนลง">↓</button>{show.status !== "watching" && <button className="queue-start" onClick={() => quickStatus(show,"watching")}>เริ่มดู</button>}<button className="queue-watch" onClick={() => changeEpisodes(show,1)} disabled={show.total_episodes !== null && show.watched_episodes >= show.total_episodes}>＋ ดูแล้ว 1 ตอน</button></div></div></article>; })}</div> : <div className="flashcard-queue-empty"><strong>คิวยังว่างอยู่</strong><p>เพิ่มซีรีย์แล้วเลือกสถานะ “อยากดู” หรือ “กำลังดู” เพื่อให้เรื่องนั้นเข้ามาอยู่ในคิวนี้</p><button className="button primary" onClick={openAdd}>＋ เพิ่มซีรีส์เข้าคิว</button></div>}
