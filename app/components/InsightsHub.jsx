@@ -1,8 +1,10 @@
 "use client";
 
+import { createClient } from "@supabase/supabase-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const OWNER = "00000000-0000-0000-0000-000000000001";
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 const DAYS = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
 const TABS = [{id:"planner",label:"แผนดูอัจฉริยะ"},{id:"calendar",label:"ปฏิทิน"},{id:"stats",label:"สถิติ"},{id:"dna",label:"Watch DNA"},{id:"backup",label:"สำรองข้อมูล"}];
 const dayNames = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
