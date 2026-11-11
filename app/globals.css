@@ -125,3 +125,15 @@ button,input,select,textarea{font-family:'Noto Sans Thai','DM Sans',sans-serif}
  .plan-remaining{font-size:8px;line-height:1.5}.plan-feature-actions{gap:4px;padding-top:9px}.plan-done{font-size:9px;padding:9px 10px}.plan-edit{font-size:9px;padding:7px 4px}
  .plan-queue{padding:12px;grid-template-columns:1fr}.queue-title{grid-column:auto}.plan-empty{align-items:flex-start;flex-wrap:wrap}.plan-empty>div:nth-child(2){min-width:calc(100% - 60px)}
 }
+
+/* Dynamic watch planner: rating and rotation cues */
+.rating-field{padding:13px 14px!important;background:#faf8fc;border:1px solid #eee8f4;border-radius:12px}
+.rating-picker{display:flex;align-items:center;gap:7px;margin-top:8px}
+.rating-star{border:0;background:transparent;color:#d9d2df;font-size:27px;line-height:1;padding:2px;cursor:pointer;transition:transform .15s,color .15s}
+.rating-star.active{color:#e5a83b}
+.rating-star:hover{transform:scale(1.12)}
+.rating-picker b{font:700 11px Manrope,sans-serif;color:#82748f;margin-left:5px}
+.plan-stars{margin-left:auto;color:#e2a83c;letter-spacing:1px;font-size:12px}
+.plan-reason{font-size:10px;color:#8c7b9d;margin-top:7px;line-height:1.5}
+.queue-copy span{line-height:1.45}
+@media(max-width:700px){.rating-star{font-size:25px}.rating-field{padding:10px!important}.plan-reason{font-size:8px}}
