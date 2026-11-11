@@ -120,7 +120,7 @@ export default function Page() {
     const inTab = active === "all" ? show.status !== "dropped" : show.status === active;
     const text = (show.title + " " + (show.original_title || "") + " " + (show.genre || "")).toLowerCase();
     return inTab && text.includes(query.toLowerCase());
-  }).sort((a,b) => backlog(b) - backlog(a)), [shows, active, query]);
+  }).sort((a,b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)), [shows, active, query]);
   const today = new Date();
   const todayKey = [today.getFullYear(), String(today.getMonth()+1).padStart(2,"0"), String(today.getDate()).padStart(2,"0")].join("-");
   const todayName = AIR_DAYS[(today.getDay() + 6) % 7];
@@ -244,7 +244,7 @@ export default function Page() {
               <div className="series-info">
                 <div className="series-title-row"><div><h3>{show.title}</h3>{show.original_title && <p className="original-title">{show.original_title}</p>}<div className="series-rating">{"★".repeat(show.rating || 3)}{"☆".repeat(5 - (show.rating || 3))}</div></div><button className="more-button" onClick={() => openEdit(show)} aria-label="แก้ไข">···</button></div>
                 <div className="series-meta"><span>ซีซัน {show.season_number}</span>{show.genre && <><i>·</i><span>{show.genre}</span></>}{show.country && <><i>·</i><span>{show.country}</span></>}{show.release_day && <><i>·</i><span className="airing-label">{releaseDayLabel(show.release_day)}</span></>}</div>
-                <div className="episode-line"><strong>EP {show.watched_episodes}</strong><span>/ {show.total_episodes ?? "—"}</span>{pct !== null && <b>{pct}%</b>}</div>
+                <div className="episode-line"><strong>EP {show.watched_episodes}</strong><span>/ {show.total_episodes ?? show.released_episodes ?? "—"}</span>{pct !== null && <b>{pct}%</b>}</div>
                 <div className="progress-track"><div className="progress-value" style={{ width: (pct ?? 0) + "%" }} /></div>
                 <div className="card-bottom"><div className="backlog-copy">{show.status === "watching" ? <><strong>{backlog(show)}</strong> ตอนค้างดู</> : show.status === "planned" ? "รอเริ่มรับชม" : show.status === "completed" ? "รับชมครบแล้ว" : STATUS[show.status]?.label}</div>
                   {show.status === "watching" && <div className="episode-actions"><button onClick={() => changeEpisodes(show, -1)} disabled={show.watched_episodes <= 0}>−</button><button onClick={() => changeEpisodes(show, 1)} disabled={show.total_episodes !== null && show.watched_episodes >= show.total_episodes}>＋</button></div>}
